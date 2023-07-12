@@ -1,5 +1,6 @@
 #!/bin/env python
 
+from os import pread
 from typing import Optional, reveal_type
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
@@ -10,6 +11,7 @@ from socket import socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR
 data = b'secret data'
 
 CLIENT_BUFFER = 1024
+BLOCK_SIZE = 16
 
 class Server:
 
@@ -25,31 +27,58 @@ class Server:
         self.sock.listen()
 
 
-    def pad(self):
-        pass
+    def _pad(self, message):
+        """Pad the message with the PKCS7 padding"""
+        bytes_to_pad = AES.block_size - (message[-1] % AES.block_size)
+        return message + bytes_to_pad.to_bytes("little") * bytes_to_pad
 
 
-    def unpad(self):
-        pass
+    def _unpad(self, message):
+        """Try to unpad the message with the PKCS7 padding
+        Raises:
+            ValueError if the message padding is incorrect"""
+        padding_byte = message[-1]
+        if padding_byte < 1 or padding_byte > 16 or \
+                padding_byte >= len(message):
+            raise ValueError("Incorrect padding!")
 
+        for i in range(1, padding_byte + 1):
+            if message[-i] != padding_byte:
+                raise ValueError("Incorrect padding!")
 
-    def _check_ct(self, ct):
-        return 1
+        return message[:-padding_byte]
+
+    def _check_ct(self, ct, message):
+        try:
+            pt_ = self.cipher.decrypt(ct)
+            pt = self._unpad(pt_)
+
+        # TODO: logging
+        except ValueError:
+            return 0
+
+        if pt != message:
+            return 1
+        else:
+            return 2
 
 
     # TODO: spawn this in a separate thread and then add gracefully_stop
     # function
-    def serve_forever(self, message: bytes, key, iv):
+    def serve_forever(self, message: bytes, key: bytes, iv: bytes):
         self.key = key
+        print(len(key))
         self.cipher = AES.new(key, AES.MODE_CBC, iv=iv)
         while True:
-            conn, addr = self.sock.accept()
-            server_ct = self.cipher.encrypt(message)
+            conn, _ = self.sock.accept()
+            padded = self._pad(message)
+            server_ct = self.cipher.encrypt(padded)
             conn.sendall(bytes(self.cipher.iv) + server_ct)
             received_ct = self.sock.recv(CLIENT_BUFFER)
 
-            status = self._check_ct(received_ct)
+            status = self._check_ct(received_ct, message)
 
+            # TODO: status codes
             if status == 0:
                 conn.sendall("invalid padding".encode())
             elif status == 1:
@@ -65,10 +94,10 @@ if __name__ == "__main__":
                             description="""This python script starts the server
                             which is vulnerable to the padding oracle attack
                             for AES in the CBC mode.""")
-    parser.add_argument("-k", "--key", required=True, dest="key", help="key" \
-                                            " to initialize the AES cipher")
     parser.add_argument("-p", "--port", dest="port", type=int, default=31337,
                         help="port to accept connections, default is 31337")
+    parser.add_argument("-k", "--key", dest="key", help="key" \
+                                            " to initialize the AES cipher")
     parser.add_argument("-m", "--message", dest="message", help="message to \
                         encrypt")
     parser.add_argument("--iv", dest="iv", help="initialization vector for the \
@@ -76,6 +105,12 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    # TODO: check for None
+    key = bytes.fromhex(args.key)
+    message = args.message.encode()
+    iv = bytes.fromhex(args.iv)
 
+    # print(key, message, iv)
+    # print(len(key))
     serv = Server(args.port)
-    serv.serve_forever(args.key, args.message, args.iv)
+    serv.serve_forever(message, key, iv)
