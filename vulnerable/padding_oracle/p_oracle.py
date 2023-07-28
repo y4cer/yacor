@@ -29,8 +29,10 @@ class Server:
 
     def _pad(self, message):
         """Pad the message with the PKCS7 padding"""
-        bytes_to_pad = AES.block_size - (message[-1] % AES.block_size)
-        return message + bytes_to_pad.to_bytes("little") * bytes_to_pad
+        bytes_to_pad = AES.block_size - (len(message) % AES.block_size)
+        print(bytes_to_pad)
+        return message + \
+                int.to_bytes(bytes_to_pad, byteorder="little") * bytes_to_pad
 
 
     def _unpad(self, message):
@@ -68,12 +70,14 @@ class Server:
     def serve_forever(self, message: bytes, key: bytes, iv: bytes):
         self.key = key
         print(len(key))
+        print(message)
         self.cipher = AES.new(key, AES.MODE_CBC, iv=iv)
         while True:
             conn, _ = self.sock.accept()
             padded = self._pad(message)
             server_ct = self.cipher.encrypt(padded)
             conn.sendall(bytes(self.cipher.iv) + server_ct)
+            print(f"{self.cipher.iv.hex()=}, {server_ct.hex()=}")
             received_ct = self.sock.recv(CLIENT_BUFFER)
 
             status = self._check_ct(received_ct, message)
@@ -94,14 +98,15 @@ if __name__ == "__main__":
                             description="""This python script starts the server
                             which is vulnerable to the padding oracle attack
                             for AES in the CBC mode.""")
+    default_key = "0"*32
     parser.add_argument("-p", "--port", dest="port", type=int, default=31337,
                         help="port to accept connections, default is 31337")
-    parser.add_argument("-k", "--key", dest="key", help="key" \
-                                            " to initialize the AES cipher")
+    parser.add_argument("-k", "--key", dest="key", help="key"  \
+                        " to initialize the AES cipher", default=default_key)
     parser.add_argument("-m", "--message", dest="message", help="message to \
-                        encrypt")
+                        encrypt", default=default_key * 2 + "asd")
     parser.add_argument("--iv", dest="iv", help="initialization vector for the \
-                        algorithm")
+                        algorithm", default=default_key)
 
     args = parser.parse_args()
 
