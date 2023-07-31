@@ -79,7 +79,7 @@ class Server:
             conn.sendall(bytes(self.cipher.iv) + server_ct)
             print(f"{self.cipher.iv.hex()=}, {server_ct.hex()=}")
             received_ct = self.sock.recv(CLIENT_BUFFER)
-
+            print(received_ct.hex())
             status = self._check_ct(received_ct, message)
 
             # TODO: status codes
