@@ -11,7 +11,6 @@ RMQ_PASS = '1234'
 
 #TODO: change this
 EXCHANGE_NAME = 'amq.topic'
-# EXCHANGE_NAME = 'cryptographic_attacks'
 #TODO: add enums
 ROUTING_KEY = 'digital_signatures.ecdsa_nonce_reuse'
 
@@ -21,65 +20,58 @@ parameters = ConnectionParameters(RMQ_HOST,
                                   credentials=credentials)
 
 
-def callback(ch, method, properties, body):
+# TODO: typings
+def attack_primitive(ch, method, properties, body):
     data = json.loads(body)
+
     print(f" [x] Received {data}")
-    # if data['value'] > 500:
-    #     print(f"{data['time']}: WARNING")
-    # else:
-    #     print(f"{data['time']}: OK")
-
-    # with open('receiver.log', 'a') as f:
-    #     json.dump(data, f)
-    #     f.write('\n')
-
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
-def fib(n):
-    if n == 0:
-        return 0
-    elif n == 1:
-        return 1
-    else:
-        return fib(n - 1) + fib(n - 2)
-
 def on_request(ch, method, props, body):
-    n = int(body)
+    print(f"[.] Received request for the attack data format")
 
-    print(f" [.] fib({n})")
-    response = fib(n)
+    attack_data = {
+        "pubkey_order": "int",
+        "sig1": "(int, int)",
+        "sig2": "(int, int)",
+        "msg_hash1": "bytes",
+        "msg_hash2": "bytes"
+    }
 
     ch.basic_publish(exchange='',
                      routing_key=props.reply_to,
                      properties=BasicProperties(correlation_id = \
                                                          props.correlation_id),
-                     body=str(response))
+                     body=json.dumps(attack_data))
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
-def main(ROUTING_KEY):
+def main():
     connection = BlockingConnection(parameters)
     channel = connection.channel()
 
-    result = channel.queue_declare('', exclusive=True)
-    queue_name = result.method.queue
+    # Declare a queue for receiving messages to atttack
+    tmp_queue_ = channel.queue_declare('', exclusive=True)
+    tmp_queue_name = tmp_queue_.method.queue
 
+    channel.queue_bind(exchange=EXCHANGE_NAME,
+                       queue=tmp_queue_name, routing_key=ROUTING_KEY)
+    channel.basic_consume(queue=tmp_queue_name, on_message_callback=attack_primitive)
+
+    # Declare a queue for receiving rpc requests for data
     rpc_queue_result = channel.queue_declare(queue="rpc_queue")
     rpc_queue = rpc_queue_result.method.queue
 
-    channel.queue_bind(exchange=EXCHANGE_NAME,
-                       queue=queue_name, routing_key=ROUTING_KEY)
-
     channel.basic_qos(prefetch_count=1)
     channel.basic_consume(queue=rpc_queue, on_message_callback=on_request)
-    channel.basic_consume(queue=queue_name, on_message_callback=callback)
 
+    # Start consuming the queues
     channel.start_consuming()
 
 
 if __name__ == '__main__':
     try:
-        main(ROUTING_KEY)
+        main()
     except KeyboardInterrupt:
         print('\nInterrupted')
         exit(0)
