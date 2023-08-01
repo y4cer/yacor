@@ -1,8 +1,10 @@
 import json
-
 from pika import BlockingConnection, ConnectionParameters, PlainCredentials, BasicProperties
 from pika.adapters.blocking_connection import BlockingChannel
 from pika.exchange_type import ExchangeType
+from Crypto.Util.number import bytes_to_long
+
+from attack import attack
 
 RMQ_HOST = 'localhost'
 RMQ_PORT = 5672
@@ -23,26 +25,17 @@ parameters = ConnectionParameters(RMQ_HOST,
 # TODO: typings
 def attack_primitive(ch, method, properties, body):
     data = json.loads(body)
-
     print(f" [x] Received {data}")
-    ch.basic_ack(delivery_tag=method.delivery_tag)
-
-def on_request(ch, method, props, body):
-    print(f"[.] Received request for the attack data format")
-
-    attack_data = {
-        "pubkey_order": "int",
-        "sig1": "(int, int)",
-        "sig2": "(int, int)",
-        "msg_hash1": "bytes",
-        "msg_hash2": "bytes"
+    data = {
+        "pubkey_order": bytes_to_long(bytes.fromhex(data["pubkey_order"])),
+        "sig1": bytes.fromhex(data["sig1"]),
+        "sig2": bytes.fromhex(data["sig2"]),
+        "msg_hash1": bytes.fromhex(data["msg_hash1"]),
+        "msg_hash2": bytes.fromhex(data["msg_hash2"])
     }
 
-    ch.basic_publish(exchange='',
-                     routing_key=props.reply_to,
-                     properties=BasicProperties(correlation_id = \
-                                                         props.correlation_id),
-                     body=json.dumps(attack_data))
+    print(f"Recovered private key: {attack(**data)}")
+
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
@@ -58,14 +51,7 @@ def main():
                        queue=tmp_queue_name, routing_key=ROUTING_KEY)
     channel.basic_consume(queue=tmp_queue_name, on_message_callback=attack_primitive)
 
-    # Declare a queue for receiving rpc requests for data
-    rpc_queue_result = channel.queue_declare(queue="rpc_queue")
-    rpc_queue = rpc_queue_result.method.queue
-
-    channel.basic_qos(prefetch_count=1)
-    channel.basic_consume(queue=rpc_queue, on_message_callback=on_request)
-
-    # Start consuming the queues
+    # Start consuming the queue
     channel.start_consuming()
 
 

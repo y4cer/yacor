@@ -25,7 +25,7 @@ class MessageBroker(object):
         self.channel = self.connection.channel()
 
 
-    def act(self, ROUTING_KEY, *args):
+    def act(self, ROUTING_KEY, data):
         # data = {
         #     "pubkey_order": "123",
         #     "sig1": "(int, int)",
@@ -34,10 +34,10 @@ class MessageBroker(object):
         #     "msg_hash2": "bytes"
         # }
 
-        #TODO: change this!!!
-        data = {}
-        for i in range(len(args)):
-            data[i] = args[i].hex()
+        ##TODO: change this!!!
+        #data = {}
+        #for i in range(len(args)):
+        #    data[i] = args[i].hex()
 
         self.channel.basic_publish(exchange=EXCHANGE_NAME,
                   routing_key=ROUTING_KEY,
@@ -50,7 +50,7 @@ if __name__ == '__main__':
     while True:
         try:
             n = int(input("enter the number: "))
-            print(broker.act(n))
+            print(broker.act(n, {"":""}))
         except KeyboardInterrupt:
             print('\nInterrupted')
             exit(0)

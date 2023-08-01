@@ -23,13 +23,23 @@ class DigitalSignatureAttackServicer(
         self.broker = broker
 
     def ecdsaReusedNonceAttack(self, request, context):
-        res = (request.pubkey_order,
-              request.signature1,
-              request.signature2,
-              request.msg_hash1,
-              request.msg_hash2)
-        print(res)
-        self.broker.act('digital_signatures.ecdsa_nonce_reuse', *res)
+        data = {
+            "pubkey_order": request.pubkey_order.hex(),
+            "sig1": request.signature1.hex(),
+            "sig2": request.signature2.hex(),
+            "msg_hash1": request.msg_hash1.hex(),
+            "msg_hash2": request.msg_hash2.hex()
+        }
+        print(f"{data=}")
+
+        # res = (request.pubkey_order,
+        #       request.signature1,
+        #       request.signature2,
+        #       request.msg_hash1,
+        #       request.msg_hash2)
+        # print(res)
+
+        self.broker.act('digital_signatures.ecdsa_nonce_reuse', data)
         return super().ecdsaReusedNonceAttack(request, context)
 
 class Backend:
