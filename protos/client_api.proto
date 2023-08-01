@@ -1,25 +1,43 @@
+// This file describes the protobuf for client and backend interaction
+
 syntax = "proto3";
 
 package client_api_proto;
 
+// Provides general information to client
 service CryptoAttacksService {
-  rpc getAvailableServices(EmptyMessage) returns (ExpectedValues) {};
+  /**
+   * Lists all currently available offensive services
+   */
+  rpc getAvailableServices(EmptyMessage) returns (AvailableServices) {};
 }
 
 // TODO: move services to the separate module
+
+// Provides API for attacks on digital signatures
 service DigitalSignatureAttackService {
-  rpc ecdsaReusedNonceAttack(ReusedNonceAttackRequest) returns (ReusedNonceAttackResponse) {};
+  /**
+   * Provides function for attack on ECDSA nonce reuse vulnerability
+   */
+  rpc ecdsaReusedNonceAttack(ReusedNonceAttackRequest)
+                                      returns (ReusedNonceAttackResponse) {};
 }
 
+// Represents entry in the map
 message MapFieldEntry {
   optional string key = 1;
   optional string value = 2;
 }
 
-message ExpectedValues {
+/**
+ * Represents list of available services, where key is the type of the service
+ * attack and value is the attack name
+ */
+message AvailableServices {
   repeated MapFieldEntry entries = 1;
 }
 
+// Represents the request for the ECDSA reused nonce attack
 message ReusedNonceAttackRequest {
   optional bytes pubkey_order = 1;
   optional bytes signature1 = 2;
@@ -28,10 +46,12 @@ message ReusedNonceAttackRequest {
   optional bytes msg_hash2 = 5;
 }
 
+// Represents the responce for the ECDSA reused nonce attack
 message ReusedNonceAttackResponse {
   optional bytes private_key = 1;
 }
 
+// Empty message
 message EmptyMessage {
 
 }

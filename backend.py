@@ -7,7 +7,7 @@ from broker import MessageBroker
 class CryptoAttacksServicer(client_api_pb2_grpc.CryptoAttacksServiceServicer):
 
     def getAvailableServices(self, request, context):
-        resp = client_api_pb2.ExpectedValues(entries=
+        resp = client_api_pb2.AvailableServices(entries=
                 [client_api_pb2.MapFieldEntry(
                     key="digital_signatures", value="ecdsa nonce reuse attack"
                     )])
