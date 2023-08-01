@@ -1,4 +1,8 @@
+# RabbitMQ orking directory
 rabbitmq
+
+# Generated proto files
+client_api_pb2*
 
 # Prerequisites
 *.d
