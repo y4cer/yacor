@@ -5,7 +5,7 @@ This is the demo-version of the cryptanalytic tool. Yacor is a service for
 security analysis of the blockchain cryptographic primitives.
 
 ## Reference architecture
-
+```
                                                     ┌───────────────────────────────┐
                                                     │                               │
                                                 ┌───┤  ECDSA reused nonce attack    │
@@ -17,7 +17,7 @@ security analysis of the blockchain cryptographic primitives.
                                                 └───┤  Other attack(s)              │
                                                     │                               │
                                                     └───────────────────────────────┘
-
+```
 ## Technology stack
 Python, python-gRPC, google-protobuf
 
