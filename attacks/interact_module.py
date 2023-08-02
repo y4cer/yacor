@@ -37,13 +37,13 @@ class DigitalSignatureAttackServicer(
 
 
 def inform_backend(service_name):
-    with grpc.insecure_channel("localhost:50051") as channel:
+    with grpc.insecure_channel("backend:50051") as channel:
         attack_manager_stub = backend_api_pb2_grpc.AttacksManagerServiceStub(channel)
         subscription_args = message_definitions_pb2.SubscribeMessage(
                 primitive_type=message_definitions_pb2.PRIMITIVE_TYPE_DIGITAL_SIGNATURE,
                 attack_name="ECDSA Reused Nonce attack",
                 port=50052,
-                service_name="attack_service_api.DigitalSignatureAttackService"
+                service_name=service_name
                 )
         attack_manager_stub.subscribe(subscription_args)
 

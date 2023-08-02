@@ -1,5 +1,23 @@
 # Regenerates all generated files in the Python examples directory.
 
+BACKEND=
+
+BACKEND += ./attack_service_api_pb2.py
+BACKEND += ./attack_service_api_pb2_grpc.py
+BACKEND += ./attack_service_api_pb2.pyi
+
+BACKEND += ./client_api_pb2.py
+BACKEND += ./client_api_pb2_grpc.py
+BACKEND += ./client_api_pb2.pyi
+
+BACKEND += ./backend_api_pb2.py
+BACKEND += ./backend_api_pb2_grpc.py
+BACKEND += ./backend_api_pb2.pyi
+
+BACKEND += ./message_definitions_pb2.py
+BACKEND += ./message_definitions_pb2_grpc.py
+BACKEND += ./message_definitions_pb2.pyi
+
 ARTIFACTS=
 
 ARTIFACTS += ./attack_service_api_pb2.py
@@ -64,6 +82,9 @@ all: ${ARTIFACTS}
 ./attacks/message_definitions_pb2.py ./attacks/message_definitions_pb2_grpc.py ./attacks/message_definitions_pb2.pyi:
 	python3 -m grpc_tools.protoc --proto_path=protos/ --python_out=${ATTACK_SERVICE_GEN_PATH} \
 		--grpc_python_out=${ATTACK_SERVICE_GEN_PATH} --pyi_out=${ATTACK_SERVICE_GEN_PATH} message_definitions.proto
+
+.PHONY: backend
+backend: ${BACKEND}
 
 .PHONY: clean
 clean:

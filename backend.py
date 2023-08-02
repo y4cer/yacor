@@ -147,5 +147,5 @@ class Backend:
         server.wait_for_termination()
 
 
-Backend('127.0.0.1:50051')
+Backend('0.0.0.0:50051')
 print(123)
