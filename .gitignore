@@ -1,4 +1,7 @@
-#Python cache
+# Python virtual environment
+env
+
+# Python cache
 __pycache__
 
 # RabbitMQ orking directory

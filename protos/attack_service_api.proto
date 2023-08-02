@@ -2,7 +2,7 @@
 
 syntax = "proto3";
 
-package attack_service_api_proto;
+package attack_service_api;
 
 import "message_definitions.proto";
 

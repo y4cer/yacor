@@ -19,7 +19,7 @@ message ReusedNonceAttackResponse {
 // Represents entry in the map
 message MapFieldEntry {
   optional string key = 1;
-  optional string value = 2;
+  repeated string value = 2;
 }
 
 /**
@@ -45,4 +45,6 @@ enum PrimitiveType {
 message SubscribeMessage {
   optional PrimitiveType primitive_type = 1;
   optional string attack_name = 2;
+  optional int32 port = 3;
+  optional string service_name = 4;
 }
