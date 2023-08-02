@@ -24,8 +24,16 @@ Python, python-gRPC, google-protobuf
 ## Deployment
 
 ## Installation
+- If you want to run this project in containerized environment: install docker
+and docker-compose according to your operating system installation guides.
+- If you want to run the project locally:
+```sh
+pip3 install --upgrade -r requirements.txt
+```
 
 ## Usage
+
+### Run the project locally
 Firstly, (re-)generate needed protobuf definitions:
 ```sh
 make
@@ -52,6 +60,10 @@ python client.py
 When you run the `interact_module.py`, you will see that it has been
 successfully registered at backend. Backend performs regular healthchecks.
 
+### Run the project via docker-compose
+```sh
+docker-compose up
+```
 
 ## License
 Licensed under BSD 3-Clause License. y4cer @ 2023.

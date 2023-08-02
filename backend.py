@@ -111,7 +111,6 @@ def healthcheck():
                 perform_healthcheck(address, service_name, primitive_type,
                                     attack_name, new_subscribers)
     print(subscribers)
-    print(new_subscribers)
     subscribers = new_subscribers
 
 
