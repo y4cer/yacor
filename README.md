@@ -26,10 +26,16 @@ Python, python-gRPC, google-protobuf
 ## Installation
 
 ## Usage
-Firstly, generate needed protobuf definitions
+Firstly, (re-)generate needed protobuf definitions:
 ```sh
-./gen_protobuf_definitions
+make
 ```
+
+To clear generated definitions, run:
+```sh
+make clean
+```
+
 Then, run backend, interact\_module and client in 3 separate terminal emulators:
 ```sh
 python backend.py
@@ -44,7 +50,8 @@ python client.py
 ```
 
 When you run the `interact_module.py`, you will see that it has been
-successfully registered at backend.
+successfully registered at backend. Backend performs regular healthchecks.
+
 
 ## License
 Licensed under BSD 3-Clause License. y4cer @ 2023.
