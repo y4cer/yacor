@@ -1,0 +1,11 @@
+// This file describes the protobuf for attack service and backend interaction
+
+syntax = "proto3";
+
+package backend_api_proto;
+
+import "message_definitions.proto";
+
+service AttacksManagerService {
+  rpc subscribe(SubscribeMessage) returns (EmptyMessage) {};
+}

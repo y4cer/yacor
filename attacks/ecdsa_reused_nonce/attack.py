@@ -14,12 +14,6 @@ from hashlib import sha1
 def attack(*, pubkey_order, sig1, sig2, msg_hash1, msg_hash2):
     r1, s1 = sigdecode_string(sig1, pubkey_order)
     r2, s2 = sigdecode_string(sig2, pubkey_order)
-
-    # r1 = sig1[0]
-    # s1 = sig1[1]
-    # r2 = sig2[0]
-    # s2 = sig2[1]
-
     #Convert Hex into Int
     L1 = int(msg_hash1, 16)
     L2 = int(msg_hash2, 16)

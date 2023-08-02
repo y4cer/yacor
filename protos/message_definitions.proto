@@ -1,0 +1,48 @@
+// This file describes message prototypes used by services
+
+syntax = "proto3";
+
+// Represents the request for the ECDSA reused nonce attack
+message ReusedNonceAttackRequest {
+  optional bytes pubkey_order = 1;
+  optional bytes signature1 = 2;
+  optional bytes signature2 = 3;
+  optional bytes msg_hash1 = 4;
+  optional bytes msg_hash2 = 5;
+}
+
+// Represents the responce for the ECDSA reused nonce attack
+message ReusedNonceAttackResponse {
+  optional bytes private_key = 1;
+}
+
+// Represents entry in the map
+message MapFieldEntry {
+  optional string key = 1;
+  optional string value = 2;
+}
+
+/**
+ * Represents list of available services, where key is the type of the service
+ * attack and value is the attack name
+ */
+message AvailableServices {
+  repeated MapFieldEntry entries = 1;
+}
+
+// Empty message
+message EmptyMessage {
+
+}
+
+enum PrimitiveType {
+  PRIMITIVE_TYPE_UNSPECIFIED = 0;
+  PRIMITIVE_TYPE_HASH = 1;
+  PRIMITIVE_TYPE_DIGITAL_SIGNATURE = 2;
+  PRIMITIVE_TYPE_SYMMETRIC = 3;
+}
+
+message SubscribeMessage {
+  optional PrimitiveType primitive_type = 1;
+  optional string attack_name = 2;
+}

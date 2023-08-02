@@ -1,11 +1,12 @@
-# Python cache
+#Python cache
 __pycache__
 
 # RabbitMQ orking directory
 rabbitmq
 
 # Generated proto files
-client_api_pb2*
+*pb2*
+gen/
 
 # Prerequisites
 *.d

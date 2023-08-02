@@ -1,18 +1,10 @@
-// This file describes the protobuf for client and backend interaction
+// This file describes the protobuf for attacking services
 
 syntax = "proto3";
 
-package client_api_proto;
+package attack_service_api_proto;
 
 import "message_definitions.proto";
-
-// Provides general information to client
-service CryptoAttacksService {
-  /**
-   * Lists all currently available offensive services
-   */
-  rpc getAvailableServices(EmptyMessage) returns (AvailableServices) {};
-}
 
 // Provides API for attacks on digital signatures
 service DigitalSignatureAttackService {
