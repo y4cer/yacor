@@ -2,6 +2,8 @@
 
 syntax = "proto3";
 
+package messages;
+
 // Represents the request for the ECDSA reused nonce attack
 message ReusedNonceAttackRequest {
   optional bytes pubkey_order = 1;
@@ -16,18 +18,22 @@ message ReusedNonceAttackResponse {
   optional bytes private_key = 1;
 }
 
-// Represents entry in the map
-message MapFieldEntry {
-  optional string key = 1;
-  repeated string value = 2;
-}
+
 
 /**
  * Represents list of available services, where key is the type of the service
  * attack and value is the attack name
  */
 message AvailableServices {
-  repeated MapFieldEntry entries = 1;
+  message AvailableService {
+    optional PrimitiveType primitive_type = 1;
+    optional string attack_name = 2;
+    optional string address = 3;
+    optional string service_name = 4;
+    optional string proto_name = 5;
+    optional string package_name = 6;
+  }
+  repeated AvailableService services = 1;
 }
 
 // Empty message
@@ -47,4 +53,6 @@ message SubscribeMessage {
   optional string attack_name = 2;
   optional int32 port = 3;
   optional string service_name = 4;
+  optional string proto_name = 5;
+  optional string package_name = 6;
 }

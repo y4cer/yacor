@@ -6,6 +6,7 @@ from time import sleep
 import copy
 
 import client_api_pb2_grpc
+import client_api_pb2
 import backend_api_pb2_grpc
 import attack_service_api_pb2_grpc
 import message_definitions_pb2
@@ -13,8 +14,16 @@ import message_definitions_pb2
 from grpc_health.v1 import health
 from grpc_health.v1 import health_pb2
 from grpc_health.v1 import health_pb2_grpc
+from grpc_reflection.v1alpha import reflection
 
 subscribers = {}
+
+primitive_type_enum = {
+    0: "PRIMITIVE_TYPE_UNSPECIFIED",
+    1: "PRIMITIVE_TYPE_HASH",
+    2: "PRIMITIVE_TYPE_DIGITAL_SIGNATURE",
+    3: "PRIMITIVE_TYPE_SYMMETRIC"
+}
 
 class AttacksManagerServicer(backend_api_pb2_grpc.AttacksManagerServiceServicer):
     #TODO: unsibscribe
@@ -24,12 +33,16 @@ class AttacksManagerServicer(backend_api_pb2_grpc.AttacksManagerServiceServicer)
         primitive = request.primitive_type
         attack_name = request.attack_name
         service_name = request.service_name
+        proto_name = request.proto_name
+        package_name = request.package_name
 
-        Services = namedtuple("Services", ["service_name", "addresses"])
+        Services = namedtuple("Services", ["service_name", "proto_name", "addresses", "package_name"])
 
         if primitive not in subscribers.keys():
             metadata = {
                 request.attack_name: Services(service_name=service_name,
+                                              proto_name=proto_name,
+                                              package_name=package_name,
                                               addresses=[])
             }
             subscribers[primitive] = metadata
@@ -45,22 +58,26 @@ class CryptoAttacksServicer(client_api_pb2_grpc.CryptoAttacksServiceServicer):
     def getAvailableServices(self, request, context):
         available_services = []
         for primitive_type, attacks in subscribers.items():
-            available_attacks = list(attacks.keys())
+            # available_attacks = list(attacks.keys())
             for attack in attacks.keys():
-                if len(subscribers[primitive_type][attack].addresses) == 0:
-                    continue
-                available_services.append(message_definitions_pb2.MapFieldEntry(
-                        key=str(primitive_type), value=available_attacks))
+                for address in subscribers[primitive_type][attack].addresses:
+                    service_info = subscribers[primitive_type][attack]
+                    available_services.append(message_definitions_pb2.AvailableServices.AvailableService(
+                        primitive_type=primitive_type_enum[primitive_type],
+                        attack_name=attack,
+                        address=address,
+                        service_name=service_info.service_name,
+                        proto_name=service_info.proto_name,
+                        package_name=service_info.package_name
+                        ))
+                    print(available_services[-1].address)
 
         resp = message_definitions_pb2.AvailableServices(
-                entries=available_services)
+                services=available_services)
         return resp
 
 class DigitalSignatureAttackServicer(
         client_api_pb2_grpc.DigitalSignatureAttackServiceServicer):
-
-    def __init__(self) -> None:
-        super().__init__()
 
     def ecdsaReusedNonceAttack(self, request, context: grpc.ServicerContext):
         healthcheck()
@@ -106,7 +123,7 @@ def healthcheck():
     new_subscribers = copy.deepcopy(subscribers)
     for primitive_type, attacks in subscribers.items():
         for attack_name in attacks.keys():
-            service_name, addresses = subscribers[primitive_type][attack_name]
+            service_name, addresses, _, _ = subscribers[primitive_type][attack_name]
             for address in addresses:
                 perform_healthcheck(address, service_name, primitive_type,
                                     attack_name, new_subscribers)

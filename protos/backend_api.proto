@@ -7,5 +7,5 @@ package backend_api;
 import "message_definitions.proto";
 
 service AttacksManagerService {
-  rpc subscribe(SubscribeMessage) returns (EmptyMessage) {};
+  rpc subscribe(messages.SubscribeMessage) returns (messages.EmptyMessage) {};
 }

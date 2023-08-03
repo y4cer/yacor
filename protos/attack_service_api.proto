@@ -11,6 +11,6 @@ service DigitalSignatureAttackService {
   /**
    * Provides function for attack on ECDSA nonce reuse vulnerability
    */
-  rpc ecdsaReusedNonceAttack(ReusedNonceAttackRequest)
-                                      returns (ReusedNonceAttackResponse) {};
+  rpc ecdsaReusedNonceAttack(messages.ReusedNonceAttackRequest)
+                                      returns (messages.ReusedNonceAttackResponse) {};
 }

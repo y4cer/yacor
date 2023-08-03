@@ -11,7 +11,7 @@ service CryptoAttacksService {
   /**
    * Lists all currently available offensive services
    */
-  rpc getAvailableServices(EmptyMessage) returns (AvailableServices) {};
+  rpc getAvailableServices(messages.EmptyMessage) returns (messages.AvailableServices) {};
 }
 
 // Provides API for attacks on digital signatures
@@ -19,6 +19,6 @@ service DigitalSignatureAttackService {
   /**
    * Provides function for attack on ECDSA nonce reuse vulnerability
    */
-  rpc ecdsaReusedNonceAttack(ReusedNonceAttackRequest)
-                                      returns (ReusedNonceAttackResponse) {};
+  rpc ecdsaReusedNonceAttack(messages.ReusedNonceAttackRequest)
+                                      returns (messages.ReusedNonceAttackResponse) {};
 }
