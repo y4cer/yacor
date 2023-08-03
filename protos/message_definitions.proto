@@ -19,7 +19,6 @@ message ReusedNonceAttackResponse {
 }
 
 
-
 /**
  * Represents list of available services, where key is the type of the service
  * attack and value is the attack name

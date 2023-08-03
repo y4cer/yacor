@@ -5,6 +5,7 @@ from typing import reveal_type
 from ecdsa.ecdsa import Signature
 from ecdsa.numbertheory import inverse_mod
 from ecdsa import SigningKey, VerifyingKey, der
+from Crypto.Util.number import long_to_bytes, bytes_to_long
 
 from ecdsa import SigningKey, NIST224p
 from ecdsa.util import sigencode_string, sigdecode_string
@@ -15,8 +16,8 @@ def attack(*, pubkey_order, sig1, sig2, msg_hash1, msg_hash2):
     r1, s1 = sigdecode_string(sig1, pubkey_order)
     r2, s2 = sigdecode_string(sig2, pubkey_order)
     #Convert Hex into Int
-    L1 = int(msg_hash1, 16)
-    L2 = int(msg_hash2, 16)
+    L1 = bytes_to_long(msg_hash1)
+    L2 = bytes_to_long(msg_hash2)
 
     if (r1 != r2):
         raise ValueError("The signature pairs given are not susceptible to this attack")
@@ -32,7 +33,7 @@ def generate_vulnerable_data(msg1, msg2):
 
     sk = SigningKey.generate(curve=NIST224p)
 
-    print(f"Actual private key: \t {sk.privkey.secret_multiplier}")
+    # print(f"Actual private key: \t {long_to_bytes(int(sk.privkey.secret_multiplier))}")
 
     vk = sk.get_verifying_key()
 
@@ -44,8 +45,8 @@ def generate_vulnerable_data(msg1, msg2):
 
     # r2, s2 = sigdecode_string(signature2, vk.pubkey.order)
 
-    msg_hash1 = sha1(msg1.encode('utf-8')).hexdigest()
-    msg_hash2 = sha1(msg2.encode('utf-8')).hexdigest()
+    msg_hash1 = sha1(msg1.encode('utf-8')).digest()
+    msg_hash2 = sha1(msg2.encode('utf-8')).digest()
 
     return vk.pubkey.order, signature, signature2, msg_hash1, msg_hash2
 
