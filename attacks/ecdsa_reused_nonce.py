@@ -1,7 +1,7 @@
-"""Implements the ECDSA Reused nonce attack as well as corresponging gRPC API.
+"""Реализует атаку с повторно используемым числом ECDSA, а также gRPC API.
 
-Exposes 2 gRPC API services: one for healthchecking, the other one implements
-the business logic of the attack mentioned above.
+Предоставляет 2 сервиса gRPC API: один для проверки состояния (healthchecking),
+а другой реализует бизнес-логику названной выше атаки.
 """
 
 from Crypto.Util.number import long_to_bytes, bytes_to_long
@@ -27,20 +27,20 @@ def attack(
     msg_hash2: bytes
 ) -> int:
     """
-    Attack the ECDSA with reused nonce flaw.
+    Атаковать ECDSA с использованием уязвимости повторно используемого числа.
 
     Args:
-        pubkey_order: order of the public key.
-        sig1: first signature to consider.
-        sig2: second signature to consider.
-        msg_hash1: hash of the first message to consider.
-        msg_hash2: hash of the second message to consider.
+        pubkey_order: порядок открытого ключа.
+        sig1: первая подпись для рассмотрения.
+        sig2: вторая подпись для рассмотрения.
+        msg_hash1: хэш первого сообщения для рассмотрения.
+        msg_hash2: хэш второго сообщения для рассмотрения.
 
     Returns:
-        Integer value of the private key.
+        Целочисленное значение закрытого ключа.
 
     Raises:
-        ValueError if the signatures are not susceptable to this attack.
+        ValueError, если подписи не подвержены этой атаке.
     """
 
     int_pubkey_order = bytes_to_long(pubkey_order)
@@ -68,16 +68,16 @@ def generate_vulnerable_data(
         msg2: str,
 ) -> tuple[bytes, bytes, bytes, bytes, bytes]:
     """
-    Generate vulnerable data for the ECDSA Reused Nonce attack.
+    Создать уязвимые данные для атаки ECDSA с повторно используемым числом.
 
     Args:
-        msg1: first message to weakly sign.
-        msg1: second message to weakly sign.
+        msg1: первое слабо подписываемое сообщение.
+        msg2: второе слабо подписываемое сообщение.
 
     Returns:
-        Tuple with all entries in bytes, containing: order of the public key,
-        first signature, second signature, first message hash, second message
-        hash.
+        Кортеж с данными в байтах, содержащий: порядок открытого ключа,
+        первую подпись, вторую подпись, хэш первого сообщения, хэш второго
+        сообщения.
     """
     sk = SigningKey.generate(curve=NIST224p)
 
@@ -93,10 +93,10 @@ def generate_vulnerable_data(
 
 def ecdsa_reused_nonce_generator() -> dict[str, bytes]:
     """
-    Generate vulnerable data for the ECDSA Reused Nonce attack.
+    Создать уязвимые данные для атаки ECDSA с повторно используемым числом.
 
     Returns:
-        Kwargs for the ReusedNonceAttackRequest.
+        Kwargs для запроса ReusedNonceAttackRequest.
     """
     vuln_data = generate_vulnerable_data("msg1", "msg2")
 
@@ -117,11 +117,11 @@ class DigitalSignatureAttackServicer(
             context
     ) -> ReusedNonceAttackResponse:
         """
-        Implements the business logic for the ECDSA Reused Nonce attack.
+        Реализует бизнес-логику для атаки ECDSA с повторно используемым числом.
 
         Args:
-            request: request for the attack.
-            context: connection context.
+            request: запрос для атаки.
+            context: контекст соединения.
 
         Returns:
             ReusedNonceAttackResponse.
@@ -146,11 +146,11 @@ def ecdsa_reused_nonce_handler(
         channel: Channel
 ) -> ReusedNonceAttackResponse:
     """
-    Calls the remote attack service through given channel.
+    Вызывает удаленный сервис атаки через указанный канал.
 
     Args:
-        message_kwargs: kwargs for the ReusedNonceAttackRequest.
-        channel: transport channel to use.
+        message_kwargs: kwargs для запроса ReusedNonceAttackRequest.
+        channel: транспортный канал для использования.
     """
 
     digital_signature_stub = \

@@ -1,4 +1,4 @@
-"""Helper module containing internal functions for initializing services"""
+"""Вспомогательный модуль, содержащий функции для инициализации сервисов"""
 
 from concurrent import futures
 from grpc import insecure_channel, Server

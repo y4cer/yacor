@@ -1,4 +1,4 @@
-"""Backend module. Implements services both for client and attack services."""
+"""Бэкенд модуль. Реализует сервисы для клиента и для атакующих сервисов"""
 
 from collections import namedtuple
 from concurrent import futures
@@ -25,11 +25,11 @@ subscribers = {}
 class AttacksManagerServicer(backend_pb2_grpc.AttacksManagerServicer):
     def subscribe(self, request: SubscribeMessage, context) -> EmptyMessage:
         """
-        Subscribe a remote attack service to the backend.
+        Подписать удаленный сервис атаки на бэкэнд.
 
         Args:
-            request: request for subscription.
-            context: connection context.
+            request: запрос на подписку.
+            context: контекст соединения.
         """
         global subscribers
 
@@ -64,14 +64,14 @@ class CryptoAttacksServicer(client_pb2_grpc.CryptoAttacksServicer):
                              context
     ) -> AvailableServices:
         """
-        Get all currently available (serving and alive) services.
+        Получить все текущие доступные (работающие и активные) сервисы.
 
         Args:
-            request: request for retrieving services services info.
-            context: connection context.
+            request: запрос на получение информации о сервисах.
+            context: контекст соединения.
 
         Returns:
-            List of all available services with their meta information.
+            Список всех доступных сервисов с их мета-информацией.
         """
         available_services = []
         for primitive_type, attacks in subscribers.items():
@@ -142,10 +142,10 @@ def healthcheck() -> None:
 
 def healthcheck_wrapper(sleep_timeout: float) -> None:
     """
-    Do the healthcheck of all subscribed services.
+    Проверить состояние (healthcheck) всех подписанных сервисов.
 
-    Go through all of the subscribed services and perform the healthcheck,
-    remove not serving services from the subscriber list.
+    Пройти через все подписанные сервисы и выполнить healthcheck,
+    удалить сервисы, которые не отвечают, из списка подписчиков.
     """
     while True:
         healthcheck()
@@ -154,7 +154,7 @@ def healthcheck_wrapper(sleep_timeout: float) -> None:
 
 class Backend:
     """
-    Main backend class. Registeres all needed services, and starts serving.
+    Регистрирует все необходимые сервисы и запускает обслуживание (serving).
     """
     def __init__(self, address: str):
         grpc_server = server(futures.ThreadPoolExecutor(max_workers=10))

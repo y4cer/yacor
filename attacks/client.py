@@ -1,7 +1,7 @@
-"""Client module.
+"""Модуль клиента.
 
-Provides user-friendly interface for creating messages, as well as querying the
-backend servers for the attacks.
+Обеспечивает удобный интерфейс для создания сообщений, а также запросов к
+серверам бэкэнда для получения информации об атаках.
 """
 
 from google.protobuf.message import Message
@@ -31,16 +31,16 @@ prompters = {
 
 def perform_attack(service: AvailableServices.AvailableService) -> Message:
     """
-    Execute the attack from the client-side.
+    Выполнить атаку с клиентской стороны.
 
-    Prompt user for the attack data and then query the authorative server for
-    the attack and retrieve the output.
+    Запросить данные для атаки у пользователя, а затем запросить сервер
+    для выполнения атаки и получения результата.
 
     Args:
-        service: service to which perform the attack.
+        service: сервис, на который выполняется атака.
 
     Returns:
-        Response from the server.
+        Ответ от сервера.
     """
     with insecure_channel(service.address) as channel:
 
@@ -79,10 +79,11 @@ def _no_services_available() -> None:
 
 def run(backend_address: str) -> None:
     """
-    Run the client prompter.
+    Запустить клиентский запрос.
 
     Args:
-        backend_address: address of the backend server to send initial query.
+        backend_address: адрес сервера бэкэнда, на который отправляется
+        начальный запрос.
     """
     with insecure_channel(backend_address) as channel:
         available_services = None

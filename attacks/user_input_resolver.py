@@ -1,4 +1,4 @@
-"""Helper module containing functions for parsing protobuf Messages."""
+"""Вспомогательный модуль, содержащий функции для парсинга protobuf сообщений"""
 
 from __future__ import annotations
 from google.protobuf import message_factory
@@ -103,13 +103,13 @@ def _prompt_for_enum_data(prompting_dict: dict[int, str]) -> int:
 
 def prompt_for_message(message_desc: Descriptor) -> dict:
     """
-    Prompt user for entering valid values for the protobuf Message.
+    Запросить у пользователя ввод допустимых значений для protobuf-сообщения.
 
     Args:
-        message_desc: Descriptor for the message class to enter.
+        message_desc: Descriptor класса сообщения для ввода.
 
     Returns:
-        dictionary of values to create the message from.
+        Словарь значений для создания сообщения.
     """
     print(f"Prompting data for {message_desc.name}")
     res_kwargs = {}
