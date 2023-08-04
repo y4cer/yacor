@@ -48,6 +48,10 @@ ARTIFACTS += ./attacks/message_definitions_pb2.py
 ARTIFACTS += ./attacks/message_definitions_pb2_grpc.py
 ARTIFACTS += ./attacks/message_definitions_pb2.pyi
 
+ARTIFACTS += ./attacks/client_api_pb2.py
+ARTIFACTS += ./attacks/client_api_pb2_grpc.py
+ARTIFACTS += ./attacks/client_api_pb2.pyi
+
 LOCAL_GEN_PATH="./"
 ATTACK_SERVICE_GEN_PATH="attacks/"
 
@@ -83,9 +87,14 @@ all: ${ARTIFACTS}
 	python3 -m grpc_tools.protoc --proto_path=protos/ --python_out=${ATTACK_SERVICE_GEN_PATH} \
 		--grpc_python_out=${ATTACK_SERVICE_GEN_PATH} --pyi_out=${ATTACK_SERVICE_GEN_PATH} message_definitions.proto
 
+./attacks/client_api_pb2.py ./attacks/client_api_pb2_grpc.py ./attacks/client_api_pb2.pyi:
+	python3 -m grpc_tools.protoc --proto_path=protos/ --python_out=${ATTACK_SERVICE_GEN_PATH} \
+		--grpc_python_out=${ATTACK_SERVICE_GEN_PATH} --pyi_out=${ATTACK_SERVICE_GEN_PATH} client_api.proto
+
 .PHONY: backend
 backend: ${BACKEND}
 
 .PHONY: clean
 clean:
 	rm -f ${ARTIFACTS}
+	rm -rf __pycache__

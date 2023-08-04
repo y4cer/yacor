@@ -15,45 +15,19 @@ from grpc_health.v1 import health_pb2
 from grpc_health.v1 import health_pb2_grpc
 from grpc_reflection.v1alpha import reflection
 
-from ecdsa_reused_nonce.attack import attack
-
-
-class DigitalSignatureAttackServicer(
-        attack_service_api_pb2_grpc.DigitalSignatureAttackServiceServicer):
-
-    def ecdsaReusedNonceAttack(self, request, context):
-        data = {
-            "pubkey_order": bytes_to_long(request.pubkey_order),
-            "sig1": request.signature1,
-            "sig2": request.signature2,
-            "msg_hash1": request.msg_hash1,
-            "msg_hash2": request.msg_hash2
-        }
-        try:
-            recovered_key = attack(**data)
-        except Exception as e:
-            print(e)
-
-        print(f"Recovered private key: {recovered_key}")
-        resp = message_definitions_pb2.ReusedNonceAttackResponse(
-                private_key=long_to_bytes(recovered_key))
-        return resp
-
-
-def inform_backend(service_name, proto_name, package_name):
+def inform_backend(service_name, description, port, primitive_type, attack_name):
     with grpc.insecure_channel("backend:50051") as channel:
         attack_manager_stub = backend_api_pb2_grpc.AttacksManagerServiceStub(channel)
         subscription_args = message_definitions_pb2.SubscribeMessage(
-                primitive_type=message_definitions_pb2.PRIMITIVE_TYPE_DIGITAL_SIGNATURE,
-                attack_name="ECDSA Reused Nonce attack",
-                port=50052,
+                primitive_type=primitive_type,
+                attack_name=attack_name,
+                port=port,
                 service_name=service_name,
-                proto_name=proto_name,
-                package_name=package_name
+                description=description,
                 )
         attack_manager_stub.subscribe(subscription_args)
 
-def _configure_health_server(server: grpc.Server, service):
+def configure_health_server(server: grpc.Server, service):
     health_servicer = health.HealthServicer(
         experimental_non_blocking=True,
         experimental_thread_pool=futures.ThreadPoolExecutor(max_workers=10),
@@ -73,7 +47,7 @@ if __name__ == '__main__':
                 DigitalSignatureAttackServicer(), server)
         server.add_insecure_port("0.0.0.0:50052")
 
-        _configure_health_server(server, service_name)
+        configure_health_server(server, service_name)
 
         SERVICE_NAMES = (
             attack_service_api_pb2.DESCRIPTOR.services_by_name['DigitalSignatureAttackService'].full_name,

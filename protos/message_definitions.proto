@@ -28,7 +28,6 @@ message TestMessage {
   SubscribeMessage msg = 7;
 }
 
-
 /**
  * Represents list of available services, where key is the type of the service
  * attack and value is the attack name
@@ -39,8 +38,7 @@ message AvailableServices {
     optional string attack_name = 2;
     optional string address = 3;
     optional string service_name = 4;
-    optional string proto_name = 5;
-    optional string package_name = 6;
+    optional string description = 5;
   }
   repeated AvailableService services = 1;
 }
@@ -62,6 +60,5 @@ message SubscribeMessage {
   optional string attack_name = 2;
   optional int32 port = 3;
   optional string service_name = 4;
-  optional string proto_name = 5;
-  optional string package_name = 6;
+  optional string description = 5;
 }

@@ -5,6 +5,7 @@ import threading
 from time import sleep
 import datetime
 import copy
+from random import choice
 
 import client_api_pb2_grpc
 import client_api_pb2
@@ -14,34 +15,31 @@ import message_definitions_pb2
 from grpc_health.v1 import health
 from grpc_health.v1 import health_pb2
 from grpc_health.v1 import health_pb2_grpc
-from grpc_reflection.v1alpha import reflection
 
 subscribers = {}
 
 class AttacksManagerServicer(backend_api_pb2_grpc.AttacksManagerServiceServicer):
-    #TODO: unsibscribe
     def subscribe(self, request, context):
         global subscribers
 
         primitive = request.primitive_type
         attack_name = request.attack_name
         service_name = request.service_name
-        proto_name = request.proto_name
-        package_name = request.package_name
+        port = request.port
+        description = request.description
 
-        Services = namedtuple("Services", ["service_name", "proto_name", "addresses", "package_name"])
+        Services = namedtuple("Services", ["service_name", "addresses", "description"])
 
         if primitive not in subscribers.keys():
             metadata = {
                 request.attack_name: Services(service_name=service_name,
-                                              proto_name=proto_name,
-                                              package_name=package_name,
+                                              description=description,
                                               addresses=[])
             }
             subscribers[primitive] = metadata
 
         service_address = ":".join(context.peer().split(":")[:-1] + \
-                                [str(request.port)])
+                                [str(port)])
         subscribers[primitive][attack_name].addresses.append(service_address)
 
         return message_definitions_pb2.EmptyMessage()
@@ -53,19 +51,20 @@ class CryptoAttacksServicer(client_api_pb2_grpc.CryptoAttacksServiceServicer):
         available_services = []
         for primitive_type, attacks in subscribers.items():
             for attack in attacks.keys():
-                for address in subscribers[primitive_type][attack].addresses:
-                    service_info = subscribers[primitive_type][attack]
 
-                    available_services.append(message_definitions_pb2.AvailableServices.AvailableService(
-                        primitive_type=primitive_type,
-                        attack_name=attack,
-                        address=address,
-                        service_name=service_info.service_name,
-                        proto_name=service_info.proto_name,
-                        package_name=service_info.package_name
-                        ))
+                if len(subscribers[primitive_type][attack].addresses) == 0:
+                    continue
 
-                    print(available_services[-1].address)
+                address = choice(subscribers[primitive_type][attack].addresses)
+                service_info = subscribers[primitive_type][attack]
+                available_services.append \
+                    (message_definitions_pb2.AvailableServices.AvailableService(
+                     primitive_type=primitive_type,
+                     attack_name=attack,
+                     address=address,
+                     service_name=service_info.service_name,
+                     description=service_info.description))
+
 
         resp = message_definitions_pb2.AvailableServices(
                 services=available_services)
@@ -88,6 +87,7 @@ def perform_healthcheck(address, service_name, primitive_type, attack_name, subs
             if resp.status != health_pb2.HealthCheckResponse.SERVING:
                 remove_subscriber(primitive_type, attack_name, address, subscribers)
     except Exception as e:
+        print(e)
         remove_subscriber(primitive_type, attack_name, address, subscribers)
 
 

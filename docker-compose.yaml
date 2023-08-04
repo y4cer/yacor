@@ -4,7 +4,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: backend.Dockerfile
+      dockerfile: backend/backend.Dockerfile
     command: python backend.py
     restart: unless-stopped
     ports:
@@ -14,7 +14,7 @@ services:
     build:
       context: .
       dockerfile: attacks/Dockerfile
-    command: python attacks/interact_module.py
+    command: python attacks/ecdsa_reused_nonce.py
     restart: unless-stopped
     depends_on:
       - backend
