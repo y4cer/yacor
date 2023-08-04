@@ -17,28 +17,8 @@ from grpc_reflection.v1alpha.proto_reflection_descriptor_database import (
 from attacks.ecdsa_reused_nonce.attack import generate_vulnerable_data
 from client_tools.user_input_resolver import prompt_for_data, prompt_for_message
 
-primitive_type_enum = {
-    0: "PRIMITIVE_TYPE_UNSPECIFIED",
-    1: "PRIMITIVE_TYPE_HASH",
-    2: "PRIMITIVE_TYPE_DIGITAL_SIGNATURE",
-    3: "PRIMITIVE_TYPE_SYMMETRIC"
-}
 
-
-def ecdsa_reused_nonce_handler():
-    digital_signature_stub = client_api_pb2_grpc.DigitalSignatureAttackServiceStub(channel)
-    req = message_definitions_pb2.ReusedNonceAttackRequest()
-
-    test = message_definitions_pb2.TestMessage()
-
-    kwargs = prompt_for_message(test.DESCRIPTOR)
-    message_definitions_pb2.TestMessage(**kwargs)
-
-    req_args = {}
-    for field in req.DESCRIPTOR.fields:
-        req_args[field.name] = prompt_for_data(field)
-        print(field.name, field.type)
-
+def ecdsa_reused_nonce_generator():
     vuln_data = generate_vulnerable_data("msg1", "msg2")
 
     pubkey_order = long_to_bytes(int(vuln_data[0]))
@@ -52,79 +32,56 @@ def ecdsa_reused_nonce_handler():
     return ecdsa_args
 
 
+def ecdsa_reused_nonce_handler(message_kwargs, channel):
+    digital_signature_stub = attack_service_api_pb2_grpc.DigitalSignatureAttackServiceStub(channel)
+    req = message_definitions_pb2.ReusedNonceAttackRequest(**message_kwargs)
+    resp = digital_signature_stub.ecdsaReusedNonceAttack(req)
+    return resp
+
 attack_handlers = {
     "ECDSA Reused Nonce attack": ecdsa_reused_nonce_handler
 }
 
+auto_generators = {
+    "ECDSA Reused Nonce attack": ecdsa_reused_nonce_generator
+}
+
+prompters = {
+    "ECDSA Reused Nonce attack": lambda: prompt_for_message(message_definitions_pb2.ReusedNonceAttackRequest().DESCRIPTOR)
+}
 
 def perform_attack(service: message_definitions_pb2.AvailableServices.AvailableService):
     with insecure_channel(service.address) as channel:
-        reflection_db = ProtoReflectionDescriptorDatabase(channel)
 
-        desc_pool = DescriptorPool(reflection_db)
-        service_desc = desc_pool.FindServiceByName(f"{service.package_name}.{service.service_name}")
-        service_stub = None
-        service_stub = eval(f"{service.proto_name}_pb2_grpc.{service.service_name}Stub(channel)")
-        assert service_stub is not None
+        choice = 0
+        while choice not in [1, 2]:
+            choice = int(input("\nPlease choose the type of the attack " \
+                  "you want to perform. \n\t1 - for automatic generation " \
+                  "of vulnerable data,  \n\t2 - for manual data " \
+                  "entry\n\n"))
 
-        print(f"\tclient: found {service.service_name} service with name: {service_desc.full_name}")
+        handler = attack_handlers[service.attack_name]
+        generator = auto_generators[service.attack_name]
+        prompter = prompters[service.attack_name]
 
-        for method in service_desc.methods:
-            print(f"\tclient: found method name: {method.full_name}")
-            input_type = method.input_type
-            output_type = method.output_type
-            print(f"\tclient: found input type for this method: {input_type.full_name}")
+        args = {}
+        if choice == 1 and generator is not None:
+            args = generator()
 
-            request_desc = desc_pool.FindMessageTypeByName(
-                input_type.full_name
-            )
-            response_desc = desc_pool.FindMessageTypeByName(
-                output_type.full_name
-            )
+        elif choice == 1 and handler is None:
+            print("There is no automatic data generation for this type of the attack")
+            choice = 2
 
-            print(f"\tclient: found request name: {request_desc.full_name}")
+        if choice == 2:
+            print("Now you are required to enter the data to the corresponding fields. Please ensure the correctness of the entered data.")
+            args = prompter()
 
-            choice = 0
-            while choice not in [1, 2]:
-                choice = int(input("\nPlease choose the type of the attack " \
-                      "you want to perform. \n\t1 - for automatic generation " \
-                      "of vulnerable data,  \n\t2 - for manual data " \
-                      "entry\n\n"))
-
-            handler = attack_handlers[service.attack_name]
-
-            args = {}
-            if choice == 1 and handler is not None:
-                args = handler()
-
-            elif choice == 1 and handler is None:
-                print("There is no automatic data generation for this type of the attack")
-                choice = 2
-
-            if choice == 2:
-                print("Now you are required to enter the data to the corresponding fields. Please ensure the correctness of the entered data.")
-                for field in request_desc.fields:
-                    res = None
-                    while res is None:
-                        res = prompt_for_data(field)
-                    args[field.name] = res
-
-            msg = eval(f"message_definitions_pb2.{input_type.name}(**args)")
-
-            # !!!!!!!!! VERY IMPORTANT !!!!!!!!!!!!!!!
-            # for field in msg.ListFields():
-            #     print(field[0].name, field[0].type)
-            # !!!!!!!!! VERY IMPORTANT !!!!!!!!!!!!!!!
-
-            resp = eval(f"service_stub.{method.name}(msg)")
-            for field in response_desc.fields:
-                print(field.name, eval(f"resp.{field.name}"))
-            print(args)
+        response = handler(args, channel)
+        print(response)
 
 def no_services_available():
     print("Sorry, there are currently no available attack services")
     exit(0)
-
 
 with insecure_channel('localhost:50051') as channel:
     available_services = None
