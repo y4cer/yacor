@@ -13,13 +13,16 @@ from grpc_health.v1 import health_pb2_grpc
 
 import client_pb2_grpc
 import backend_pb2_grpc
-import message_definitions_pb2
+from message_definitions_pb2 import (SubscribeMessage,
+                                     EmptyMessage,
+                                     AvailableServices)
 
 
 subscribers = {}
 
 class AttacksManagerServicer(backend_pb2_grpc.AttacksManagerServicer):
-    def subscribe(self, request, context):
+    def subscribe(self, request: SubscribeMessage, context
+                  ) -> EmptyMessage:
         global subscribers
 
         primitive = request.primitive_type
@@ -28,7 +31,8 @@ class AttacksManagerServicer(backend_pb2_grpc.AttacksManagerServicer):
         port = request.port
         description = request.description
 
-        Services = namedtuple("Services", ["service_name", "addresses", "description"])
+        Services = namedtuple("Services",
+                              ["service_name", "addresses", "description"])
 
         if primitive not in subscribers.keys():
             metadata = {
@@ -42,12 +46,13 @@ class AttacksManagerServicer(backend_pb2_grpc.AttacksManagerServicer):
                                 [str(port)])
         subscribers[primitive][attack_name].addresses.append(service_address)
 
-        return message_definitions_pb2.EmptyMessage()
+        return EmptyMessage()
 
 
 class CryptoAttacksServicer(client_pb2_grpc.CryptoAttacksServicer):
 
-    def getAvailableServices(self, request, context):
+    def getAvailableServices(self, request: EmptyMessage, context
+                             ) -> AvailableServices:
         available_services = []
         for primitive_type, attacks in subscribers.items():
             for attack in attacks.keys():
@@ -58,7 +63,7 @@ class CryptoAttacksServicer(client_pb2_grpc.CryptoAttacksServicer):
                 address = choice(subscribers[primitive_type][attack].addresses)
                 service_info = subscribers[primitive_type][attack]
                 available_services.append \
-                    (message_definitions_pb2.AvailableServices.AvailableService(
+                    (AvailableServices.AvailableService(
                      primitive_type=primitive_type,
                      attack_name=attack,
                      address=address,
@@ -66,18 +71,22 @@ class CryptoAttacksServicer(client_pb2_grpc.CryptoAttacksServicer):
                      description=service_info.description))
 
 
-        resp = message_definitions_pb2.AvailableServices(
+        resp = AvailableServices(
                 services=available_services)
         return resp
 
 
-def remove_subscriber(primitive_type, attack_name, address, subscribers):
+def remove_subscriber(primitive_type: int, attack_name: str, address: str,
+                      subscribers
+                      ) -> None:
     services = subscribers[primitive_type][attack_name]
     if address in services.addresses:
         services.addresses.remove(address)
 
 
-def perform_healthcheck(address, service_name, primitive_type, attack_name, subscribers):
+def perform_healthcheck(address: str, service_name: str, primitive_type: int,
+                        attack_name: str, subscribers
+                        ) -> None:
     try:
         with insecure_channel(address) as channel:
             health_stub = health_pb2_grpc.HealthStub(channel)
@@ -90,7 +99,7 @@ def perform_healthcheck(address, service_name, primitive_type, attack_name, subs
         remove_subscriber(primitive_type, attack_name, address, subscribers)
 
 
-def healthcheck():
+def healthcheck() -> None:
     global subscribers
     new_subscribers = deepcopy(subscribers)
     for primitive_type, attacks in subscribers.items():
@@ -104,7 +113,7 @@ def healthcheck():
     subscribers = new_subscribers
 
 
-def healthcheck_wrapper(sleep_timeout):
+def healthcheck_wrapper(sleep_timeout: float) -> None:
     while True:
         healthcheck()
         sleep(sleep_timeout)

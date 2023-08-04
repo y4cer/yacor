@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Dict
 from google.protobuf import message_factory
 from google.protobuf.descriptor import Descriptor, FieldDescriptor
@@ -40,12 +41,13 @@ _grpc_integer_types = ["TYPE_FIXED32", "TYPE_FIXED64",
                       ]
 
 
-def _get_data_with_prompt(field_name, prompt):
+def _get_data_with_prompt(field_name: str, prompt: str) -> str:
     data = input(f"{field_name} ({prompt}): ")
     return data
 
 
-def prompt_for_data(field: FieldDescriptor):
+def _prompt_for_data(field: FieldDescriptor
+                     ) -> bytes | bool | float | int | str | None:
     try:
         match _field_types[field.type]:
 
@@ -81,7 +83,8 @@ def prompt_for_data(field: FieldDescriptor):
         print(e)
         return None
 
-def prompt_for_enum_data(prompting_dict: Dict[int, str]):
+
+def prompt_for_enum_data(prompting_dict: Dict[int, str]) -> int:
     print("Available enum types: ")
     for k, v in prompting_dict.items():
         print(f"{k}: {v}")
@@ -96,14 +99,17 @@ def prompt_for_enum_data(prompting_dict: Dict[int, str]):
             print(e)
     return n
 
+
 def prompt_for_message(message_desc: Descriptor):
     print(f"Prompting data for {message_desc.name}")
     res_kwargs = {}
     for field in message_desc.fields:
         n = 1
         entries = []
+
         if _field_labels[field.label] == "LABEL_REPEATED":
             n = int(input("Please type the number of entries you want to insert: "))
+
         for i in range(n):
             #TODO: press ctrl+c to stop entering data
             if n > 1:
@@ -124,11 +130,11 @@ def prompt_for_message(message_desc: Descriptor):
                 entries.append(idx)
             else:
                 while data is None:
-                    data = prompt_for_data(field)
+                    data = _prompt_for_data(field)
                 entries.append(data)
+
         if n > 1 or _field_labels[field.label] == "LABEL_REPEATED":
             res_kwargs[field.name] = entries
         else:
             res_kwargs[field.name] = entries[0]
-        print(res_kwargs)
     return res_kwargs

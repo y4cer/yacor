@@ -1,3 +1,4 @@
+from google.protobuf.message import Message
 from grpc import insecure_channel
 
 import client_pb2_grpc
@@ -5,7 +6,7 @@ import message_definitions_pb2
 
 from user_input_resolver import prompt_for_message
 from ecdsa_reused_nonce import (ecdsa_reused_nonce_generator,
-                                        ecdsa_reused_nonce_handler)
+                                ecdsa_reused_nonce_handler)
 
 attack_handlers = {
     "ECDSA Reused Nonce attack": ecdsa_reused_nonce_handler
@@ -21,7 +22,9 @@ prompters = {
                                    .ReusedNonceAttackRequest().DESCRIPTOR)
 }
 
-def perform_attack(service: message_definitions_pb2.AvailableServices.AvailableService):
+def perform_attack(service:
+                   message_definitions_pb2.AvailableServices.AvailableService
+                   ) -> Message:
     with insecure_channel(service.address) as channel:
 
         choice = 0
@@ -40,27 +43,31 @@ def perform_attack(service: message_definitions_pb2.AvailableServices.AvailableS
             args = generator()
 
         elif choice == 1 and handler is None:
-            print("There is no automatic data generation for this type of the attack")
+            print("There is no automatic data generation for this type of " \
+                    "the attack")
             choice = 2
 
         if choice == 2:
-            print("Now you are required to enter the data to the corresponding fields. Please ensure the correctness of the entered data.")
+            print("Now you are required to enter the data to the " \
+                  "corresponding fields. Please ensure the correctness of " \
+                  "the  entered data.")
             args = prompter()
 
         response = handler(args, channel)
-        print(response)
+        return response
 
-def no_services_available():
+def no_services_available() -> None:
     print("Sorry, there are currently no available attack services")
     exit(0)
 
-def run(backend_address):
+def run(backend_address: str) -> None:
     with insecure_channel(backend_address) as channel:
         available_services = None
         try:
             crypto_attacks_stub = client_pb2_grpc.CryptoAttacksStub(channel)
             crypto_attack_args = message_definitions_pb2.EmptyMessage()
-            available_services = crypto_attacks_stub.getAvailableServices(crypto_attack_args).services
+            available_services = crypto_attacks_stub \
+                    .getAvailableServices(crypto_attack_args).services
         except Exception as e:
             print(e)
             no_services_available()
@@ -76,14 +83,24 @@ def run(backend_address):
             print(f"primitive_type is: {service.primitive_type}")
             print(f"attack name is: {service.attack_name}")
 
-        chosen_attack = int(input("Choose the attack: "))
-        #TODO: check for 0 and not ints
-        assert 0 <= chosen_attack <= len(available_services) - 1
+        try:
+            chosen_attack = int(input("Choose the attack: "))
+            if not (0 <= chosen_attack <= len(available_services) - 1):
+                raise ValueError("Enter the correct integer value for the " \
+                        "attack")
+            print(f"You chose: {chosen_attack}")
+            attack_service = available_services[chosen_attack]
+            res = perform_attack(attack_service)
+            print(res)
 
-        print(f"You chose: {chosen_attack}")
-        attack_service = available_services[chosen_attack]
+        except ValueError as e:
+            print(e)
 
-    perform_attack(attack_service)
 
 while True:
-    run('localhost:50051')
+    try:
+        print("Running an interactive client, press ctrl+c to exit.")
+        run('localhost:50051')
+    except KeyboardInterrupt:
+        print("\nExititng...")
+        exit(0)
