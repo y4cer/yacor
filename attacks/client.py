@@ -1,12 +1,11 @@
-import client_api_pb2_grpc
-import message_definitions_pb2
-
 from grpc import insecure_channel
 
-from ecdsa_reused_nonce import (ecdsa_reused_nonce_generator,
-                                        ecdsa_reused_nonce_handler)
+import client_pb2_grpc
+import message_definitions_pb2
 
 from user_input_resolver import prompt_for_message
+from ecdsa_reused_nonce import (ecdsa_reused_nonce_generator,
+                                        ecdsa_reused_nonce_handler)
 
 attack_handlers = {
     "ECDSA Reused Nonce attack": ecdsa_reused_nonce_handler
@@ -59,7 +58,7 @@ def run(backend_address):
     with insecure_channel(backend_address) as channel:
         available_services = None
         try:
-            crypto_attacks_stub = client_api_pb2_grpc.CryptoAttacksServiceStub(channel)
+            crypto_attacks_stub = client_pb2_grpc.CryptoAttacksStub(channel)
             crypto_attack_args = message_definitions_pb2.EmptyMessage()
             available_services = crypto_attacks_stub.getAvailableServices(crypto_attack_args).services
         except Exception as e:

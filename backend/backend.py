@@ -1,24 +1,24 @@
 from collections import namedtuple
 from concurrent import futures
-import grpc
-import threading
+from threading import Thread
 from time import sleep
-import datetime
-import copy
+from datetime import datetime
+from copy import deepcopy
 from random import choice
-
-import client_api_pb2_grpc
-import client_api_pb2
-import backend_api_pb2_grpc
-import message_definitions_pb2
+from grpc import server, insecure_channel
 
 from grpc_health.v1 import health
 from grpc_health.v1 import health_pb2
 from grpc_health.v1 import health_pb2_grpc
 
+import client_pb2_grpc
+import backend_pb2_grpc
+import message_definitions_pb2
+
+
 subscribers = {}
 
-class AttacksManagerServicer(backend_api_pb2_grpc.AttacksManagerServiceServicer):
+class AttacksManagerServicer(backend_pb2_grpc.AttacksManagerServicer):
     def subscribe(self, request, context):
         global subscribers
 
@@ -45,7 +45,7 @@ class AttacksManagerServicer(backend_api_pb2_grpc.AttacksManagerServiceServicer)
         return message_definitions_pb2.EmptyMessage()
 
 
-class CryptoAttacksServicer(client_api_pb2_grpc.CryptoAttacksServiceServicer):
+class CryptoAttacksServicer(client_pb2_grpc.CryptoAttacksServicer):
 
     def getAvailableServices(self, request, context):
         available_services = []
@@ -79,11 +79,10 @@ def remove_subscriber(primitive_type, attack_name, address, subscribers):
 
 def perform_healthcheck(address, service_name, primitive_type, attack_name, subscribers):
     try:
-        with grpc.insecure_channel(address) as channel:
+        with insecure_channel(address) as channel:
             health_stub = health_pb2_grpc.HealthStub(channel)
             resp = health_stub.Check(health_pb2.HealthCheckRequest(
                 service=service_name))
-            # print(f"address {address} is {resp.status}")
             if resp.status != health_pb2.HealthCheckResponse.SERVING:
                 remove_subscriber(primitive_type, attack_name, address, subscribers)
     except Exception as e:
@@ -93,7 +92,7 @@ def perform_healthcheck(address, service_name, primitive_type, attack_name, subs
 
 def healthcheck():
     global subscribers
-    new_subscribers = copy.deepcopy(subscribers)
+    new_subscribers = deepcopy(subscribers)
     for primitive_type, attacks in subscribers.items():
         for attack_name in attacks.keys():
             service_name = subscribers[primitive_type][attack_name].service_name
@@ -101,7 +100,7 @@ def healthcheck():
             for address in addresses:
                 perform_healthcheck(address, service_name, primitive_type,
                                     attack_name, new_subscribers)
-    print(f"{datetime.datetime.now()}: {subscribers}")
+    print(f"{datetime.now()}: {subscribers}")
     subscribers = new_subscribers
 
 
@@ -114,26 +113,25 @@ def healthcheck_wrapper(sleep_timeout):
 class Backend:
 
     def __init__(self, address: str):
-        server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+        grpc_server = server(futures.ThreadPoolExecutor(max_workers=10))
 
-        backend_api_pb2_grpc.add_AttacksManagerServiceServicer_to_server(
-                AttacksManagerServicer(), server)
-        client_api_pb2_grpc.add_CryptoAttacksServiceServicer_to_server(
-            CryptoAttacksServicer(), server)
+        backend_pb2_grpc.add_AttacksManagerServicer_to_server(
+                AttacksManagerServicer(), grpc_server)
+        client_pb2_grpc.add_CryptoAttacksServicer_to_server(
+            CryptoAttacksServicer(), grpc_server)
 
-        server.add_insecure_port(address)
+        grpc_server.add_insecure_port(address)
 
         # Use a daemon thread to toggle health status
-        healthcheck_thread = threading.Thread(
+        healthcheck_thread = Thread(
             target=healthcheck_wrapper,
             args=(5,),
             daemon=True,
         )
         healthcheck_thread.start()
 
-        server.start()
-        server.wait_for_termination()
+        grpc_server.start()
+        grpc_server.wait_for_termination()
 
 
 Backend('0.0.0.0:50051')
-print(123)

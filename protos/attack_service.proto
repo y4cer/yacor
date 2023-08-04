@@ -2,12 +2,12 @@
 
 syntax = "proto3";
 
-package attack_service_api;
+package attack_service;
 
 import "message_definitions.proto";
 
 // Provides API for attacks on digital signatures
-service DigitalSignatureAttackService {
+service DigitalSignatureAttack {
   /**
    * Provides function for attack on ECDSA nonce reuse vulnerability
    */

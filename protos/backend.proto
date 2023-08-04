@@ -2,10 +2,10 @@
 
 syntax = "proto3";
 
-package backend_api;
+package backend;
 
 import "message_definitions.proto";
 
-service AttacksManagerService {
+service AttacksManager {
   rpc subscribe(messages.SubscribeMessage) returns (messages.EmptyMessage) {};
 }

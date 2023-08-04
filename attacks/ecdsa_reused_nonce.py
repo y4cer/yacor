@@ -1,26 +1,13 @@
-from ecdsa.numbertheory import inverse_mod
-from Crypto.Util.number import long_to_bytes, bytes_to_long
-
 from ecdsa import SigningKey, NIST224p
 from ecdsa.util import sigdecode_string
 from ecdsa.numbertheory import inverse_mod
+from Crypto.Util.number import long_to_bytes, bytes_to_long
 from hashlib import sha1
 from concurrent import futures
-from Crypto.Util.number import bytes_to_long, long_to_bytes
-import grpc
-import threading
-from time import sleep
+from grpc import server
 
-import attack_service_api_pb2
-import attack_service_api_pb2_grpc
-import backend_api_pb2
-import backend_api_pb2_grpc
+import attack_service_pb2_grpc
 import message_definitions_pb2
-
-from grpc_health.v1 import health
-from grpc_health.v1 import health_pb2
-from grpc_health.v1 import health_pb2_grpc
-from grpc_reflection.v1alpha import reflection
 
 from interact_module import inform_backend, configure_health_server
 
@@ -69,9 +56,9 @@ def ecdsa_reused_nonce_generator():
     return ecdsa_args
 
 class DigitalSignatureAttackServicer(
-        attack_service_api_pb2_grpc.DigitalSignatureAttackServiceServicer):
+        attack_service_pb2_grpc.DigitalSignatureAttackServicer):
 
-    def ecdsaReusedNonceAttack(self, request, context):
+    def ecdsaReusedNonceAttack(self, request, _):
         data = {
             "pubkey_order": bytes_to_long(request.pubkey_order),
             "sig1": request.signature1,
@@ -88,7 +75,7 @@ class DigitalSignatureAttackServicer(
 
 
 def ecdsa_reused_nonce_handler(message_kwargs, channel):
-    digital_signature_stub = attack_service_api_pb2_grpc.DigitalSignatureAttackServiceStub(channel)
+    digital_signature_stub = attack_service_pb2_grpc.DigitalSignatureAttackStub(channel)
     req = message_definitions_pb2.ReusedNonceAttackRequest(**message_kwargs)
     resp = digital_signature_stub.ecdsaReusedNonceAttack(req)
     return resp
@@ -101,19 +88,19 @@ def run():
     port = 50002
     primitive_type = message_definitions_pb2.PRIMITIVE_TYPE_DIGITAL_SIGNATURE
 
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    grpc_server = server(futures.ThreadPoolExecutor(max_workers=10))
 
-    attack_service_api_pb2_grpc.add_DigitalSignatureAttackServiceServicer_to_server(
-            DigitalSignatureAttackServicer(), server)
-    server.add_insecure_port(f"0.0.0.0:{port}")
+    attack_service_pb2_grpc.add_DigitalSignatureAttackServicer_to_server(
+            DigitalSignatureAttackServicer(), grpc_server)
+    grpc_server.add_insecure_port(f"0.0.0.0:{port}")
 
-    configure_health_server(server, service_name)
+    configure_health_server(grpc_server, service_name)
 
-    server.start()
+    grpc_server.start()
 
     inform_backend(service_name, description, port, primitive_type, "ECDSA Reused Nonce attack")
 
-    server.wait_for_termination()
+    grpc_server.wait_for_termination()
 
 
 # For testing
