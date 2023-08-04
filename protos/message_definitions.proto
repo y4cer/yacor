@@ -18,6 +18,16 @@ message ReusedNonceAttackResponse {
   optional bytes private_key = 1;
 }
 
+message TestMessage {
+  optional bytes test_1 = 1;
+  optional bool test_2 = 2;
+  optional double test_3 = 3;
+  optional float test_4 = 4;
+  optional int64 test_5 = 5;
+  AvailableServices services = 6;
+  SubscribeMessage msg = 7;
+}
+
 
 /**
  * Represents list of available services, where key is the type of the service

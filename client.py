@@ -1,6 +1,6 @@
 from typing import Iterable, reveal_type
 
-from google.protobuf.descriptor import FileDescriptor
+from google.protobuf.descriptor import Descriptor, FieldDescriptor, FileDescriptor
 import client_api_pb2_grpc
 import client_api_pb2
 import message_definitions_pb2
@@ -15,6 +15,7 @@ from grpc_reflection.v1alpha.proto_reflection_descriptor_database import (
 )
 
 from attacks.ecdsa_reused_nonce.attack import generate_vulnerable_data
+from client_tools.user_input_resolver import prompt_for_data, prompt_for_message
 
 primitive_type_enum = {
     0: "PRIMITIVE_TYPE_UNSPECIFIED",
@@ -23,35 +24,21 @@ primitive_type_enum = {
     3: "PRIMITIVE_TYPE_SYMMETRIC"
 }
 
-field_types = {
-    8: "TYPE_BOOL",
-   12: "TYPE_BYTES",
-    1: "TYPE_DOUBLE",
-   14: "TYPE_ENUM",
-    7: "TYPE_FIXED32",
-    6: "TYPE_FIXED64",
-    2: "TYPE_FLOAT",
-   10: "TYPE_GROUP",
-    5: "TYPE_INT32",
-    3: "TYPE_INT64",
-   11: "TYPE_MESSAGE",
-   15: "TYPE_SFIXED32",
-   16: "TYPE_SFIXED64",
-   17: "TYPE_SINT32",
-   18: "TYPE_SINT64",
-    9: "TYPE_STRING",
-   13: "TYPE_UINT32",
-    4: "TYPE_UINT64",
-}
-
-grpc_integer_types = ["TYPE_FIXED32", "TYPE_FIXED64",
-                      "TYPE_INT32", "TYPE_INT64",
-                      "TYPE_SFIXED32", "TYPE_SFIXED64",
-                      "TYPE_SINT32", "TYPE_SINT64",
-                      "TYPE_UINT32", "TYPE_UINT64"
-                      ]
 
 def ecdsa_reused_nonce_handler():
+    digital_signature_stub = client_api_pb2_grpc.DigitalSignatureAttackServiceStub(channel)
+    req = message_definitions_pb2.ReusedNonceAttackRequest()
+
+    test = message_definitions_pb2.TestMessage()
+
+    kwargs = prompt_for_message(test.DESCRIPTOR)
+    message_definitions_pb2.TestMessage(**kwargs)
+
+    req_args = {}
+    for field in req.DESCRIPTOR.fields:
+        req_args[field.name] = prompt_for_data(field)
+        print(field.name, field.type)
+
     vuln_data = generate_vulnerable_data("msg1", "msg2")
 
     pubkey_order = long_to_bytes(int(vuln_data[0]))
@@ -64,42 +51,6 @@ def ecdsa_reused_nonce_handler():
     }
     return ecdsa_args
 
-def get_data_with_prompt(field_name, prompt):
-    data = input(f"{field_name} ({prompt}): ")
-    return data
-
-def prompt_for_data(field: FileDescriptor):
-    try:
-        match field_types[field.type]:
-
-            case "TYPE_BYTES":
-                data = get_data_with_prompt(field.name, "hex encoded bytestring")
-                return bytes.fromhex(data)
-
-            case "TYPE_BOOL":
-                data = get_data_with_prompt(field.name, "true/false")
-                if data == "true":
-                    return True
-                elif data == "false":
-                    return False
-                else:
-                    raise ValueError("Only true/false is allowed!")
-
-            case "TYPE_DOUBLE" | "TYPE_FLOAT":
-                data = get_data_with_prompt(field.name, "float or double value")
-                return float(data)
-
-            case w if w in grpc_integer_types:
-                data = get_data_with_prompt(field.name, "integer value")
-                return int(data)
-
-            case "TYPE_STRING":
-                data = get_data_with_prompt(field.name, "string value")
-                return data
-
-    except ValueError as e:
-        print(e)
-        return None
 
 attack_handlers = {
     "ECDSA Reused Nonce attack": ecdsa_reused_nonce_handler
@@ -198,7 +149,7 @@ with insecure_channel('localhost:50051') as channel:
         print(f"attack name is: {service.attack_name}")
 
     chosen_attack = int(input("Choose the attack: "))
-    #TODO: check for 0
+    #TODO: check for 0 and not ints
     assert 0 <= chosen_attack <= len(available_services) - 1
 
     print(f"You chose: {chosen_attack}")
