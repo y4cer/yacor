@@ -1,14 +1,14 @@
 # yacor
 
-## Description
-This is the demo-version of the cryptanalytic tool. yacor is a service for
-security analysis of the blockchain cryptographic primitives.
+## Описание
+Это демонстрационная версия криптоаналитического инструмента. yacor - это
+сервис для анализа безопасности криптографических примитивов блокчейна.
 
-## Disclaimer
-I strongly encourage using this project only in scientific or research
-purposes.
+## Отказ от ответственности
+Я настоятельно рекомендую использовать этот проект только в научных или
+исследовательских целях.
 
-## Reference architecture
+## Референсная архитектура
 ```
                                             ┌───────────────────────────────┐
                                             │                               │
@@ -23,57 +23,62 @@ purposes.
                   │             │           └───────────────────────────────┘
                   └─────────────┘
 ```
-The yacor project consists of 3 main modules:
-1. **Client**: simple python client which firstly retrieves information about
-available services and then makes attack requests to these services.
-2. **Backend**: gRPC python backend, which exposes 2 APIs: one for client
-information retrieval, the second one is for attack services to "subscribe"
-to the backend and make them visible to the client. Once attack service is
-subscribed, backend starts doing periodical healthchecks to have the most
-recent information present for the client. Backend also acts as a load-balancer
-between client and multiple attack services implementing the same attack.
-3. **Attack service(s)**: gRPC python service, which exposes 2 services: one
-for healthchecks, other one is for the processing of the user requests. Once
-the service is started, it immediately informs the backend of its serving status
-and starts to respond to healthcheck messages.
+Проект yacor состоит из 3 основных модулей:
+1. **Клиент (Client)**: простой клиент на Python, который сначала получает
+информацию о доступных сервисах, а затем отправляет запросы на атаку к этим
+сервисам.
+2. **Бэкэнд (Backend)**: gRPC-сервер на Python, который предоставляет 2 API:
+один для получения информации клиента, второй - для "подписки" сервисов атаки
+на бэкэнд и предоставления их видимости клиенту. Как только сервис атаки
+подписывается, бэкэнд начинает периодически выполнять проверку состояния для
+обновления информации клиента. Бэкэнд также выступает в роли балансировщика
+нагрузки между клиентом и несколькими сервисами атаки, реализующими одну и ту
+же атаку.
+3. **Сервис(ы) атаки (Attack service(s))**: gRPC-сервис на Python,
+предоставляющий 2 сервиса: один для healthchecks, второй - для обработки
+запросов пользователя. Как только сервис запущен, он сразу сообщает бэкэнду о
+своем статусе обслуживания и начинает отвечать на сообщения healthcheck.
 
-## Technology stack
+## Стэк технологий
 Python, python-gRPC, google-protobuf
 
-## Deployment
+## Деплой
 
-## Installation
-1. Install python, docker-compose and Docker according to your system guides.
-Then, execute:
+## Установка
+1. Установите Python, docker-compose и Docker согласно инструкциям для вашей
+системы. Затем выполните:
 ```sh
 python -m venv env
 source env/bin/activate
 pip3 install --upgrade -r requirements.txt
 ```
-To install all needed requirements into the newly created Python virtual
-environment.
+чтобы установить все необходимые зависимости в только что созданное виртуальное
+окружение Python.
 
-2. Then run make to generate all protobuf declarations.
+2. Затем выполните `make all` для генерации всех объявлений protobuf.
 ```sh
 make all
 ```
 
-To clean generated proto definitions, run `make clean`.
-## Usage
+Для удаления сгенерированных определений proto, выполните `make clean`.
 
-### Run the project locally via docker-compose
-The best way to run this project without any headaches is to use docker-compose.
+## Использование
+
+### Запуск проекта локально через docker-compose
+Лучший способ запустить этот проект без головной боли - использовать
+docker-compose.
 ```sh
 docker-compose up
 ```
-Then you will see the periodical healthcheck logs made by backend service.
+Затем вы увидите логи периодических проверок состояния (healthcheck),
+выполняемых службой бэкэнда.
 
-Then run
+Затем выполните
 ```sh
 python client.py
 ```
-To connect to the remote backend service to retrieve all information about
-running services and choose the attack.
+чтобы подключиться к удаленной службе бэкэнда для получения всей информации о
+работающих службах и выбрать атаку.
 
-## License
-Licensed under BSD 3-Clause License. y4cer @ 2023.
+## Лицензия
+Лицензия BSD 3-Clause. y4cer @ 2023.
