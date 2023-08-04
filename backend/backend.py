@@ -1,18 +1,20 @@
+"""Backend module. Implements services both for client and attack services."""
+
 from collections import namedtuple
 from concurrent import futures
+from copy import deepcopy
+from datetime import datetime
+from grpc import server, insecure_channel
+from random import choice
 from threading import Thread
 from time import sleep
-from datetime import datetime
-from copy import deepcopy
-from random import choice
-from grpc import server, insecure_channel
 
 from grpc_health.v1 import health
 from grpc_health.v1 import health_pb2
 from grpc_health.v1 import health_pb2_grpc
 
-import client_pb2_grpc
 import backend_pb2_grpc
+import client_pb2_grpc
 from message_definitions_pb2 import (SubscribeMessage,
                                      EmptyMessage,
                                      AvailableServices)
@@ -21,8 +23,14 @@ from message_definitions_pb2 import (SubscribeMessage,
 subscribers = {}
 
 class AttacksManagerServicer(backend_pb2_grpc.AttacksManagerServicer):
-    def subscribe(self, request: SubscribeMessage, context
-                  ) -> EmptyMessage:
+    def subscribe(self, request: SubscribeMessage, context) -> EmptyMessage:
+        """
+        Subscribe a remote attack service to the backend.
+
+        Args:
+            request: request for subscription.
+            context: connection context.
+        """
         global subscribers
 
         primitive = request.primitive_type
@@ -51,8 +59,20 @@ class AttacksManagerServicer(backend_pb2_grpc.AttacksManagerServicer):
 
 class CryptoAttacksServicer(client_pb2_grpc.CryptoAttacksServicer):
 
-    def getAvailableServices(self, request: EmptyMessage, context
-                             ) -> AvailableServices:
+    def getAvailableServices(self,
+                             request: EmptyMessage,
+                             context
+    ) -> AvailableServices:
+        """
+        Get all currently available (serving and alive) services.
+
+        Args:
+            request: request for retrieving services services info.
+            context: connection context.
+
+        Returns:
+            List of all available services with their meta information.
+        """
         available_services = []
         for primitive_type, attacks in subscribers.items():
             for attack in attacks.keys():
@@ -76,27 +96,34 @@ class CryptoAttacksServicer(client_pb2_grpc.CryptoAttacksServicer):
         return resp
 
 
-def remove_subscriber(primitive_type: int, attack_name: str, address: str,
-                      subscribers
-                      ) -> None:
+def _remove_subscriber(
+        primitive_type: int,
+        attack_name: str,
+        address: str,
+        subscribers: dict
+) -> None:
     services = subscribers[primitive_type][attack_name]
     if address in services.addresses:
         services.addresses.remove(address)
 
 
-def perform_healthcheck(address: str, service_name: str, primitive_type: int,
-                        attack_name: str, subscribers
-                        ) -> None:
+def perform_healthcheck(
+        address: str,
+        service_name: str,
+        primitive_type: int,
+        attack_name: str,
+        subscribers: dict
+) -> None:
     try:
         with insecure_channel(address) as channel:
             health_stub = health_pb2_grpc.HealthStub(channel)
             resp = health_stub.Check(health_pb2.HealthCheckRequest(
                 service=service_name))
             if resp.status != health_pb2.HealthCheckResponse.SERVING:
-                remove_subscriber(primitive_type, attack_name, address, subscribers)
+                _remove_subscriber(primitive_type, attack_name, address, subscribers)
     except Exception as e:
         print(e)
-        remove_subscriber(primitive_type, attack_name, address, subscribers)
+        _remove_subscriber(primitive_type, attack_name, address, subscribers)
 
 
 def healthcheck() -> None:
@@ -114,13 +141,21 @@ def healthcheck() -> None:
 
 
 def healthcheck_wrapper(sleep_timeout: float) -> None:
+    """
+    Do the healthcheck of all subscribed services.
+
+    Go through all of the subscribed services and perform the healthcheck,
+    remove not serving services from the subscriber list.
+    """
     while True:
         healthcheck()
         sleep(sleep_timeout)
 
 
 class Backend:
-
+    """
+    Main backend class. Registeres all needed services, and starts serving.
+    """
     def __init__(self, address: str):
         grpc_server = server(futures.ThreadPoolExecutor(max_workers=10))
 

@@ -1,8 +1,8 @@
+"""Helper module containing functions for parsing protobuf Messages."""
+
 from __future__ import annotations
-from typing import Dict
 from google.protobuf import message_factory
 from google.protobuf.descriptor import Descriptor, FieldDescriptor
-from google.protobuf.message import Message
 
 # Google protobuf field types from the official documentation v 4.21.1
 # https://googleapis.dev/python/protobuf/latest/google/protobuf/descriptor.html#google.protobuf.descriptor.FieldDescriptor
@@ -46,8 +46,9 @@ def _get_data_with_prompt(field_name: str, prompt: str) -> str:
     return data
 
 
-def _prompt_for_data(field: FieldDescriptor
-                     ) -> bytes | bool | float | int | str | None:
+def _prompt_for_data(
+        field: FieldDescriptor
+) -> bytes | bool | float | int | str | None:
     try:
         match _field_types[field.type]:
 
@@ -84,7 +85,7 @@ def _prompt_for_data(field: FieldDescriptor
         return None
 
 
-def prompt_for_enum_data(prompting_dict: Dict[int, str]) -> int:
+def _prompt_for_enum_data(prompting_dict: dict[int, str]) -> int:
     print("Available enum types: ")
     for k, v in prompting_dict.items():
         print(f"{k}: {v}")
@@ -100,7 +101,16 @@ def prompt_for_enum_data(prompting_dict: Dict[int, str]) -> int:
     return n
 
 
-def prompt_for_message(message_desc: Descriptor):
+def prompt_for_message(message_desc: Descriptor) -> dict:
+    """
+    Prompt user for entering valid values for the protobuf Message.
+
+    Args:
+        message_desc: Descriptor for the message class to enter.
+
+    Returns:
+        dictionary of values to create the message from.
+    """
     print(f"Prompting data for {message_desc.name}")
     res_kwargs = {}
     for field in message_desc.fields:
@@ -126,7 +136,7 @@ def prompt_for_message(message_desc: Descriptor):
                 prompting_dict = {}
                 for idx, k in enumerate(enum_dict):
                     prompting_dict[idx] = k
-                idx = prompt_for_enum_data(prompting_dict)
+                idx = _prompt_for_enum_data(prompting_dict)
                 entries.append(idx)
             else:
                 while data is None:

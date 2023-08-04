@@ -1,3 +1,5 @@
+"""Helper module containing internal functions for initializing services"""
+
 from concurrent import futures
 from grpc import insecure_channel, Server
 
@@ -8,9 +10,13 @@ from grpc_health.v1 import health
 from grpc_health.v1 import health_pb2
 from grpc_health.v1 import health_pb2_grpc
 
-def inform_backend(service_name: str, description: str, port: int, \
-                    primitive_type: PrimitiveType, attack_name: str
-                   ) -> None:
+def inform_backend(
+        service_name: str,
+        description: str,
+        port: int,
+        primitive_type: PrimitiveType,
+        attack_name: str
+) -> None:
     with insecure_channel("backend:50051") as channel:
         attack_manager_stub = backend_pb2_grpc.AttacksManagerStub(channel)
         subscription_args = SubscribeMessage(

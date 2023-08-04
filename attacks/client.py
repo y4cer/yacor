@@ -1,8 +1,16 @@
+"""Client module.
+
+Provides user-friendly interface for creating messages, as well as querying the
+backend servers for the attacks.
+"""
+
 from google.protobuf.message import Message
 from grpc import insecure_channel
 
 import client_pb2_grpc
-import message_definitions_pb2
+from message_definitions_pb2 import (ReusedNonceAttackRequest,
+                                     AvailableServices,
+                                     EmptyMessage)
 
 from user_input_resolver import prompt_for_message
 from ecdsa_reused_nonce import (ecdsa_reused_nonce_generator,
@@ -18,13 +26,22 @@ auto_generators = {
 
 prompters = {
     "ECDSA Reused Nonce attack":
-        lambda: prompt_for_message(message_definitions_pb2 \
-                                   .ReusedNonceAttackRequest().DESCRIPTOR)
+        lambda: prompt_for_message(ReusedNonceAttackRequest().DESCRIPTOR)
 }
 
-def perform_attack(service:
-                   message_definitions_pb2.AvailableServices.AvailableService
-                   ) -> Message:
+def perform_attack(service: AvailableServices.AvailableService) -> Message:
+    """
+    Execute the attack from the client-side.
+
+    Prompt user for the attack data and then query the authorative server for
+    the attack and retrieve the output.
+
+    Args:
+        service: service to which perform the attack.
+
+    Returns:
+        Response from the server.
+    """
     with insecure_channel(service.address) as channel:
 
         choice = 0
@@ -56,26 +73,32 @@ def perform_attack(service:
         response = handler(args, channel)
         return response
 
-def no_services_available() -> None:
+def _no_services_available() -> None:
     print("Sorry, there are currently no available attack services")
     exit(0)
 
 def run(backend_address: str) -> None:
+    """
+    Run the client prompter.
+
+    Args:
+        backend_address: address of the backend server to send initial query.
+    """
     with insecure_channel(backend_address) as channel:
         available_services = None
         try:
             crypto_attacks_stub = client_pb2_grpc.CryptoAttacksStub(channel)
-            crypto_attack_args = message_definitions_pb2.EmptyMessage()
+            crypto_attack_args = EmptyMessage()
             available_services = crypto_attacks_stub \
                     .getAvailableServices(crypto_attack_args).services
         except Exception as e:
             print(e)
-            no_services_available()
+            _no_services_available()
 
         assert available_services is not None
 
         if len(available_services) == 0:
-            no_services_available()
+            _no_services_available()
 
         for idx, service in enumerate(available_services):
             print(f"======== Attack {idx} ========")
