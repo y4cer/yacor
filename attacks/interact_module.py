@@ -2,6 +2,7 @@
 
 from concurrent import futures
 import grpc
+import logging
 
 import backend_pb2_grpc
 import message_definitions_pb2
@@ -9,6 +10,8 @@ import message_definitions_pb2
 from grpc_health.v1 import health
 from grpc_health.v1 import health_pb2
 from grpc_health.v1 import health_pb2_grpc
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def inform_backend(
@@ -28,6 +31,7 @@ def inform_backend(
                 description=description,
         )
         attack_manager_stub.subscribe(subscription_args)
+        _LOGGER.info(f"Subscribed service with {attack_name} to backend.")
 
 
 def configure_health_server(server: grpc.Server, service: str) -> None:

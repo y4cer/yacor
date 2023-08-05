@@ -5,6 +5,7 @@ import collections
 import copy
 import datetime
 import grpc
+import logging
 import random
 import threading
 import time
@@ -15,6 +16,8 @@ from grpc_health.v1 import health_pb2_grpc
 import backend_pb2_grpc
 import client_pb2_grpc
 import message_definitions_pb2
+
+_LOGGER = logging.getLogger(__name__)
 
 subscribers = {}
 
@@ -82,6 +85,8 @@ class CryptoAttacksServicer(client_pb2_grpc.CryptoAttacksServicer):
             for attack in attacks.keys():
 
                 if len(subscribers[primitive_type][attack].addresses) == 0:
+                    _LOGGER.info(f"There are no active subscribers for \
+                            {attack}")
                     continue
 
                 address = random.choice(
@@ -135,7 +140,7 @@ def perform_healthcheck(
                         subscribers
                 )
     except Exception as e:
-        print(e)
+        _LOGGER.error(e)
         _remove_subscriber(primitive_type, attack_name, address, subscribers)
 
 
@@ -149,7 +154,7 @@ def healthcheck() -> None:
             for address in addresses:
                 perform_healthcheck(address, service_name, primitive_type,
                                     attack_name, new_subscribers)
-    print(f"{datetime.datetime.now()}: {subscribers}")
+    _LOGGER.info(f"{datetime.datetime.now()}: {subscribers}")
     subscribers = new_subscribers
 
 
@@ -191,4 +196,6 @@ class Backend:
         grpc_server.wait_for_termination()
 
 
-Backend('0.0.0.0:50051')
+if __name__ == "__main__":
+    logging.basicConfig()
+    Backend('0.0.0.0:50051')

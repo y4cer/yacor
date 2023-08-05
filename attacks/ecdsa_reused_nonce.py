@@ -10,11 +10,14 @@ from ecdsa import util, numbertheory
 import ecdsa
 import grpc
 import hashlib
+import logging
 
 import attack_service_pb2_grpc
 import message_definitions_pb2
 
 import interact_module
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def attack(
@@ -139,7 +142,7 @@ class DigitalSignatureAttackServicer(
         }
         recovered_key = attack(**data)
 
-        print(f"Recovered private key: {recovered_key}")
+        _LOGGER.info(f"Recovered private key: {recovered_key}")
         resp = message_definitions_pb2.ReusedNonceAttackResponse(
                 private_key=number.long_to_bytes(recovered_key)
         )
@@ -193,9 +196,10 @@ def run() -> None:
             primitive_type,
             "ECDSA Reused Nonce attack"
     )
-
+    _LOGGER.info("Stared serving")
     grpc_server.wait_for_termination()
 
 
 if __name__ == "__main__":
+    logging.basicConfig()
     run()

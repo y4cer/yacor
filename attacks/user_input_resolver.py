@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 from google.protobuf import message_factory, descriptor
+import logging
+
+_LOGGER = logging.getLogger(__name__)
 
 # Google protobuf field types from the official documentation v 4.21.1
 # https://googleapis.dev/python/protobuf/latest/google/protobuf/descriptor.html#google.protobuf.descriptor.FieldDescriptor
@@ -87,7 +90,7 @@ def _prompt_for_data(
                 return 0
 
     except ValueError as e:
-        print(e)
+        _LOGGER.error(e)
         return None
 
 

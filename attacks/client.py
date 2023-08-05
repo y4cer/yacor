@@ -10,9 +10,11 @@ import logging
 
 import client_pb2_grpc
 import message_definitions_pb2
+
 import user_input_resolver
 import ecdsa_reused_nonce
 
+_LOGGER = logging.getLogger(__name__)
 
 attack_handlers = {
     "ECDSA Reused Nonce attack": ecdsa_reused_nonce.handler
@@ -71,8 +73,12 @@ def perform_attack(
                   "corresponding fields. Please ensure the correctness of "
                   "the  entered data.")
             args = prompter()
-
-        response = handler(args, channel)
+        try:
+            response = handler(args, channel)
+            _LOGGER.info(f"Successfull rpc call: {response.message}")
+        except grpc.RpcError as rpc_error:
+            _LOGGER.error(f"Rpc call error: {rpc_error}")
+            raise RuntimeError(f"Unexpected error: {rpc_error}")
         return response
 
 
@@ -115,10 +121,11 @@ def run(backend_address: str) -> None:
             print(f"You chose: {chosen_attack}")
             attack_service = available_services[chosen_attack]
             res = perform_attack(attack_service)
+
             print(res)
 
         except ValueError as e:
-            print(e)
+            _LOGGER.error(e)
 
 
 def main():
@@ -129,6 +136,8 @@ def main():
         except KeyboardInterrupt:
             print("\nExititng...")
             exit(0)
+        except RuntimeError as e:
+            _LOGGER.error(e)
 
 
 if __name__ == "__main__":
