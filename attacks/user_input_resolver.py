@@ -7,22 +7,22 @@ from google.protobuf import message_factory, descriptor
 # https://googleapis.dev/python/protobuf/latest/google/protobuf/descriptor.html#google.protobuf.descriptor.FieldDescriptor
 _field_types = {
     8: "TYPE_BOOL",
-   12: "TYPE_BYTES",
+    12: "TYPE_BYTES",
     1: "TYPE_DOUBLE",
-   14: "TYPE_ENUM",
+    14: "TYPE_ENUM",
     7: "TYPE_FIXED32",
     6: "TYPE_FIXED64",
     2: "TYPE_FLOAT",
-   10: "TYPE_GROUP",
+    10: "TYPE_GROUP",
     5: "TYPE_INT32",
     3: "TYPE_INT64",
-   11: "TYPE_MESSAGE",
-   15: "TYPE_SFIXED32",
-   16: "TYPE_SFIXED64",
-   17: "TYPE_SINT32",
-   18: "TYPE_SINT64",
+    11: "TYPE_MESSAGE",
+    15: "TYPE_SFIXED32",
+    16: "TYPE_SFIXED64",
+    17: "TYPE_SINT32",
+    18: "TYPE_SINT64",
     9: "TYPE_STRING",
-   13: "TYPE_UINT32",
+    13: "TYPE_UINT32",
     4: "TYPE_UINT64",
 }
 
@@ -32,12 +32,13 @@ _field_labels = {
     3: "LABEL_REPEATED"
 }
 
-_grpc_integer_types = ["TYPE_FIXED32", "TYPE_FIXED64",
-                      "TYPE_INT32", "TYPE_INT64",
-                      "TYPE_SFIXED32", "TYPE_SFIXED64",
-                      "TYPE_SINT32", "TYPE_SINT64",
-                      "TYPE_UINT32", "TYPE_UINT64"
-                      ]
+_grpc_integer_types = [
+    "TYPE_FIXED32", "TYPE_FIXED64",
+    "TYPE_INT32", "TYPE_INT64",
+    "TYPE_SFIXED32", "TYPE_SFIXED64",
+    "TYPE_SINT32", "TYPE_SINT64",
+    "TYPE_UINT32", "TYPE_UINT64"
+]
 
 
 def _get_data_with_prompt(field_name: str, prompt: str) -> str:
@@ -52,7 +53,10 @@ def _prompt_for_data(
         match _field_types[field.type]:
 
             case "TYPE_BYTES":
-                data = _get_data_with_prompt(field.name, "hex encoded bytestring")
+                data = _get_data_with_prompt(
+                        field.name,
+                        "hex encoded bytestring"
+                )
                 return bytes.fromhex(data)
 
             case "TYPE_BOOL":
@@ -65,7 +69,10 @@ def _prompt_for_data(
                     raise ValueError("Only true/false is allowed!")
 
             case "TYPE_DOUBLE" | "TYPE_FLOAT":
-                data = _get_data_with_prompt(field.name, "float or double value")
+                data = _get_data_with_prompt(
+                        field.name,
+                        "float or double value"
+                )
                 return float(data)
 
             case w if w in _grpc_integer_types:
@@ -117,10 +124,11 @@ def prompt_for_message(message_desc: descriptor.Descriptor) -> dict:
         entries = []
 
         if _field_labels[field.label] == "LABEL_REPEATED":
-            n = int(input("Please type the number of entries you want to insert: "))
+            n = int(input(
+                "Please type the number of entries you want to insert: "
+            ))
 
         for i in range(n):
-            #TODO: press ctrl+c to stop entering data
             if n > 1:
                 print(f"Prompting for entry #{i + 1}")
 

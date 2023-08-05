@@ -26,7 +26,7 @@ def inform_backend(
                 port=port,
                 service_name=service_name,
                 description=description,
-                )
+        )
         attack_manager_stub.subscribe(subscription_args)
 
 
