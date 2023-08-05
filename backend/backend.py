@@ -1,29 +1,29 @@
 """Бэкенд модуль. Реализует сервисы для клиента и для атакующих сервисов"""
 
-from collections import namedtuple
 from concurrent import futures
-from copy import deepcopy
-from datetime import datetime
-from grpc import server, insecure_channel
-from random import choice
-from threading import Thread
-from time import sleep
+import collections
+import copy
+import datetime
+import grpc
+import random
+import threading
+import time
 
-from grpc_health.v1 import health
 from grpc_health.v1 import health_pb2
 from grpc_health.v1 import health_pb2_grpc
 
 import backend_pb2_grpc
 import client_pb2_grpc
-from message_definitions_pb2 import (SubscribeMessage,
-                                     EmptyMessage,
-                                     AvailableServices)
-
+import message_definitions_pb2
 
 subscribers = {}
 
 class AttacksManagerServicer(backend_pb2_grpc.AttacksManagerServicer):
-    def subscribe(self, request: SubscribeMessage, context) -> EmptyMessage:
+    def subscribe(
+            self,
+            request: message_definitions_pb2.SubscribeMessage,
+            context
+    ) -> message_definitions_pb2.EmptyMessage:
         """
         Подписать удаленный сервис атаки на бэкэнд.
 
@@ -39,8 +39,10 @@ class AttacksManagerServicer(backend_pb2_grpc.AttacksManagerServicer):
         port = request.port
         description = request.description
 
-        Services = namedtuple("Services",
-                              ["service_name", "addresses", "description"])
+        Services = collections.namedtuple(
+                "Services",
+                ["service_name", "addresses", "description"]
+        )
 
         if primitive not in subscribers.keys():
             metadata = {
@@ -54,15 +56,15 @@ class AttacksManagerServicer(backend_pb2_grpc.AttacksManagerServicer):
                                 [str(port)])
         subscribers[primitive][attack_name].addresses.append(service_address)
 
-        return EmptyMessage()
+        return message_definitions_pb2.EmptyMessage()
 
 
 class CryptoAttacksServicer(client_pb2_grpc.CryptoAttacksServicer):
 
     def getAvailableServices(self,
-                             request: EmptyMessage,
+                             request: message_definitions_pb2.EmptyMessage,
                              context
-    ) -> AvailableServices:
+    ) -> message_definitions_pb2.AvailableServices:
         """
         Получить все текущие доступные (работающие и активные) сервисы.
 
@@ -80,10 +82,10 @@ class CryptoAttacksServicer(client_pb2_grpc.CryptoAttacksServicer):
                 if len(subscribers[primitive_type][attack].addresses) == 0:
                     continue
 
-                address = choice(subscribers[primitive_type][attack].addresses)
+                address = random.choice(subscribers[primitive_type][attack].addresses)
                 service_info = subscribers[primitive_type][attack]
                 available_services.append \
-                    (AvailableServices.AvailableService(
+                    (message_definitions_pb2.AvailableServices.AvailableService(
                      primitive_type=primitive_type,
                      attack_name=attack,
                      address=address,
@@ -91,7 +93,7 @@ class CryptoAttacksServicer(client_pb2_grpc.CryptoAttacksServicer):
                      description=service_info.description))
 
 
-        resp = AvailableServices(
+        resp = message_definitions_pb2.AvailableServices(
                 services=available_services)
         return resp
 
@@ -115,7 +117,7 @@ def perform_healthcheck(
         subscribers: dict
 ) -> None:
     try:
-        with insecure_channel(address) as channel:
+        with grpc.insecure_channel(address) as channel:
             health_stub = health_pb2_grpc.HealthStub(channel)
             resp = health_stub.Check(health_pb2.HealthCheckRequest(
                 service=service_name))
@@ -128,7 +130,7 @@ def perform_healthcheck(
 
 def healthcheck() -> None:
     global subscribers
-    new_subscribers = deepcopy(subscribers)
+    new_subscribers = copy.deepcopy(subscribers)
     for primitive_type, attacks in subscribers.items():
         for attack_name in attacks.keys():
             service_name = subscribers[primitive_type][attack_name].service_name
@@ -136,7 +138,7 @@ def healthcheck() -> None:
             for address in addresses:
                 perform_healthcheck(address, service_name, primitive_type,
                                     attack_name, new_subscribers)
-    print(f"{datetime.now()}: {subscribers}")
+    print(f"{datetime.datetime.now()}: {subscribers}")
     subscribers = new_subscribers
 
 
@@ -149,7 +151,7 @@ def healthcheck_wrapper(sleep_timeout: float) -> None:
     """
     while True:
         healthcheck()
-        sleep(sleep_timeout)
+        time.sleep(sleep_timeout)
 
 
 class Backend:
@@ -157,7 +159,7 @@ class Backend:
     Регистрирует все необходимые сервисы и запускает обслуживание (serving).
     """
     def __init__(self, address: str):
-        grpc_server = server(futures.ThreadPoolExecutor(max_workers=10))
+        grpc_server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
 
         backend_pb2_grpc.add_AttacksManagerServicer_to_server(
                 AttacksManagerServicer(), grpc_server)
@@ -167,7 +169,7 @@ class Backend:
         grpc_server.add_insecure_port(address)
 
         # Use a daemon thread to toggle health status
-        healthcheck_thread = Thread(
+        healthcheck_thread = threading.Thread(
             target=healthcheck_wrapper,
             args=(5,),
             daemon=True,

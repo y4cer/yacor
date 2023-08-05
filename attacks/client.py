@@ -4,32 +4,33 @@
 серверам бэкэнда для получения информации об атаках.
 """
 
-from google.protobuf.message import Message
-from grpc import insecure_channel
+from google.protobuf import message
+import grpc
+import logging
 
 import client_pb2_grpc
-from message_definitions_pb2 import (ReusedNonceAttackRequest,
-                                     AvailableServices,
-                                     EmptyMessage)
+import message_definitions_pb2
+import user_input_resolver
+import ecdsa_reused_nonce
 
-from user_input_resolver import prompt_for_message
-from ecdsa_reused_nonce import (ecdsa_reused_nonce_generator,
-                                ecdsa_reused_nonce_handler)
 
 attack_handlers = {
-    "ECDSA Reused Nonce attack": ecdsa_reused_nonce_handler
+    "ECDSA Reused Nonce attack": ecdsa_reused_nonce.handler
 }
 
 auto_generators = {
-    "ECDSA Reused Nonce attack": ecdsa_reused_nonce_generator
+    "ECDSA Reused Nonce attack": ecdsa_reused_nonce.generator
 }
 
 prompters = {
     "ECDSA Reused Nonce attack":
-        lambda: prompt_for_message(ReusedNonceAttackRequest().DESCRIPTOR)
+        lambda: user_input_resolver.prompt_for_message(
+            message_definitions_pb2.ReusedNonceAttackRequest().DESCRIPTOR)
 }
 
-def perform_attack(service: AvailableServices.AvailableService) -> Message:
+def perform_attack(
+        service: message_definitions_pb2.AvailableServices.AvailableService
+) -> message.Message:
     """
     Выполнить атаку с клиентской стороны.
 
@@ -42,7 +43,7 @@ def perform_attack(service: AvailableServices.AvailableService) -> Message:
     Returns:
         Ответ от сервера.
     """
-    with insecure_channel(service.address) as channel:
+    with grpc.insecure_channel(service.address) as channel:
 
         choice = 0
         while choice not in [1, 2]:
@@ -85,15 +86,14 @@ def run(backend_address: str) -> None:
         backend_address: адрес сервера бэкэнда, на который отправляется
         начальный запрос.
     """
-    with insecure_channel(backend_address) as channel:
+    with grpc.insecure_channel(backend_address) as channel:
         available_services = None
         try:
             crypto_attacks_stub = client_pb2_grpc.CryptoAttacksStub(channel)
-            crypto_attack_args = EmptyMessage()
+            crypto_attack_args = message_definitions_pb2.EmptyMessage()
             available_services = crypto_attacks_stub \
                     .getAvailableServices(crypto_attack_args).services
-        except Exception as e:
-            print(e)
+        except Exception as _:
             _no_services_available()
 
         assert available_services is not None
@@ -104,8 +104,6 @@ def run(backend_address: str) -> None:
         for idx, service in enumerate(available_services):
             print(f"======== Attack {idx} ========")
             print(service)
-            print(f"primitive_type is: {service.primitive_type}")
-            print(f"attack name is: {service.attack_name}")
 
         try:
             chosen_attack = int(input("Choose the attack: "))
@@ -120,11 +118,17 @@ def run(backend_address: str) -> None:
         except ValueError as e:
             print(e)
 
+def main():
 
-while True:
-    try:
-        print("Running an interactive client, press ctrl+c to exit.")
-        run('localhost:50051')
-    except KeyboardInterrupt:
-        print("\nExititng...")
-        exit(0)
+
+    while True:
+        try:
+            print("Running an interactive client, press ctrl+c to exit.")
+            run('localhost:50051')
+        except KeyboardInterrupt:
+            print("\nExititng...")
+            exit(0)
+
+if __name__ == "__main__":
+    logging.basicConfig()
+    main()
