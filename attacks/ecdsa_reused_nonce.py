@@ -4,20 +4,17 @@ Exposes 2 gRPC API services: one for healthchecking, the other one implements
 the business logic of the attack mentioned above.
 """
 
-from Crypto.Util.number import long_to_bytes, bytes_to_long
+from Crypto.Util import number
 from concurrent import futures
-from ecdsa import SigningKey, NIST224p
-from ecdsa.numbertheory import inverse_mod
-from ecdsa.util import sigdecode_string
-from grpc import Channel, server
-from hashlib import sha1
+from ecdsa import util, numbertheory
+import ecdsa
+import grpc
+import hashlib
 
 import attack_service_pb2_grpc
-from message_definitions_pb2 import (ReusedNonceAttackResponse,
-                                     ReusedNonceAttackRequest,
-                                     PRIMITIVE_TYPE_DIGITAL_SIGNATURE)
+import message_definitions_pb2
 
-from interact_module import inform_backend, configure_health_server
+import interact_module
 
 def attack(
     *, pubkey_order: bytes,
@@ -43,12 +40,12 @@ def attack(
         ValueError if the signatures are not susceptable to this attack.
     """
 
-    int_pubkey_order = bytes_to_long(pubkey_order)
-    r1, s1 = sigdecode_string(sig1, int_pubkey_order)
-    r2, s2 = sigdecode_string(sig2, int_pubkey_order)
+    int_pubkey_order = number.bytes_to_long(pubkey_order)
+    r1, s1 = util.sigdecode_string(sig1, int_pubkey_order)
+    r2, s2 = util.sigdecode_string(sig2, int_pubkey_order)
 
-    L1 = bytes_to_long(msg_hash1)
-    L2 = bytes_to_long(msg_hash2)
+    L1 = number.bytes_to_long(msg_hash1)
+    L2 = number.bytes_to_long(msg_hash2)
 
     if (r1 != r2):
         raise ValueError(
@@ -56,7 +53,7 @@ def attack(
 
     numerator = (((s2 * L1) % int_pubkey_order) -
                     ((s1 * L2) % int_pubkey_order))
-    denominator = inverse_mod(r1 * ((s1 - s2) % int_pubkey_order),
+    denominator = numbertheory.inverse_mod(r1 * ((s1 - s2) % int_pubkey_order),
                                                       int_pubkey_order)
 
     privateKey = numerator * denominator % int_pubkey_order
@@ -79,19 +76,19 @@ def generate_vulnerable_data(
         first signature, second signature, first message hash, second message
         hash.
     """
-    sk = SigningKey.generate(curve=NIST224p)
+    sk = ecdsa.SigningKey.generate(curve=ecdsa.NIST224p)
 
     vk = sk.get_verifying_key()
 
     signature = sk.sign(msg1.encode('utf-8'), k=42)
     signature2 = sk.sign(msg2.encode("utf-8"), k=42)
 
-    msg_hash1 = sha1(msg1.encode('utf-8')).digest()
-    msg_hash2 = sha1(msg2.encode('utf-8')).digest()
+    msg_hash1 = hashlib.sha1(msg1.encode('utf-8')).digest()
+    msg_hash2 = hashlib.sha1(msg2.encode('utf-8')).digest()
 
     return vk.pubkey.order, signature, signature2, msg_hash1, msg_hash2
 
-def ecdsa_reused_nonce_generator() -> dict[str, bytes]:
+def generator() -> dict[str, bytes]:
     """
     Generate vulnerable data for the ECDSA Reused Nonce attack.
 
@@ -100,7 +97,7 @@ def ecdsa_reused_nonce_generator() -> dict[str, bytes]:
     """
     vuln_data = generate_vulnerable_data("msg1", "msg2")
 
-    ecdsa_args = {"pubkey_order": long_to_bytes(int(vuln_data[0])),
+    ecdsa_args = {"pubkey_order": number.long_to_bytes(int(vuln_data[0])),
                   "signature1": vuln_data[1],
                   "signature2": vuln_data[2],
                   "msg_hash1": vuln_data[3],
@@ -113,9 +110,9 @@ class DigitalSignatureAttackServicer(
 
     def ecdsaReusedNonceAttack(
             self,
-            request: ReusedNonceAttackRequest,
+            request: message_definitions_pb2.ReusedNonceAttackRequest,
             context
-    ) -> ReusedNonceAttackResponse:
+    ) -> message_definitions_pb2.ReusedNonceAttackResponse:
         """
         Implements the business logic for the ECDSA Reused Nonce attack.
 
@@ -136,15 +133,16 @@ class DigitalSignatureAttackServicer(
         recovered_key = attack(**data)
 
         print(f"Recovered private key: {recovered_key}")
-        resp = ReusedNonceAttackResponse(
-                private_key=long_to_bytes(recovered_key))
+        resp = message_definitions_pb2.ReusedNonceAttackResponse(
+                private_key=number.long_to_bytes(recovered_key)
+                )
         return resp
 
 
-def ecdsa_reused_nonce_handler(
-        message_kwargs,
-        channel: Channel
-) -> ReusedNonceAttackResponse:
+def handler(
+        message_kwargs: dict,
+        channel: grpc.Channel
+) -> message_definitions_pb2.ReusedNonceAttackResponse:
     """
     Calls the remote attack service through given channel.
 
@@ -155,7 +153,7 @@ def ecdsa_reused_nonce_handler(
 
     digital_signature_stub = \
             attack_service_pb2_grpc.DigitalSignatureAttackStub(channel)
-    req = ReusedNonceAttackRequest(**message_kwargs)
+    req = message_definitions_pb2.ReusedNonceAttackRequest(**message_kwargs)
     resp = digital_signature_stub.ecdsaReusedNonceAttack(req)
     return resp
 
@@ -165,20 +163,27 @@ def run() -> None:
     description = "Service performs nonce reuse attack on ECDSA, utilizing " \
     "the reused `k` in digital signature algorithm generation. Works with SHA1"
     port = 50002
-    primitive_type = PRIMITIVE_TYPE_DIGITAL_SIGNATURE
+    primitive_type = message_definitions_pb2.PRIMITIVE_TYPE_DIGITAL_SIGNATURE
 
-    grpc_server = server(futures.ThreadPoolExecutor(max_workers=10))
+    grpc_server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
 
     attack_service_pb2_grpc.add_DigitalSignatureAttackServicer_to_server(
-            DigitalSignatureAttackServicer(), grpc_server)
+            DigitalSignatureAttackServicer(),
+            grpc_server
+    )
     grpc_server.add_insecure_port(f"0.0.0.0:{port}")
 
-    configure_health_server(grpc_server, service_name)
+    interact_module.configure_health_server(grpc_server, service_name)
 
     grpc_server.start()
 
-    inform_backend(service_name, description, port, primitive_type,
-                   "ECDSA Reused Nonce attack")
+    interact_module.inform_backend(
+            service_name,
+            description,
+            port,
+            primitive_type,
+            "ECDSA Reused Nonce attack"
+    )
 
     grpc_server.wait_for_termination()
 

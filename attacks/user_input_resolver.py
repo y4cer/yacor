@@ -1,8 +1,7 @@
 """Helper module containing functions for parsing protobuf Messages."""
 
 from __future__ import annotations
-from google.protobuf import message_factory
-from google.protobuf.descriptor import Descriptor, FieldDescriptor
+from google.protobuf import message_factory, descriptor
 
 # Google protobuf field types from the official documentation v 4.21.1
 # https://googleapis.dev/python/protobuf/latest/google/protobuf/descriptor.html#google.protobuf.descriptor.FieldDescriptor
@@ -47,7 +46,7 @@ def _get_data_with_prompt(field_name: str, prompt: str) -> str:
 
 
 def _prompt_for_data(
-        field: FieldDescriptor
+        field: descriptor.FieldDescriptor
 ) -> bytes | bool | float | int | str | None:
     try:
         match _field_types[field.type]:
@@ -101,7 +100,7 @@ def _prompt_for_enum_data(prompting_dict: dict[int, str]) -> int:
     return n
 
 
-def prompt_for_message(message_desc: Descriptor) -> dict:
+def prompt_for_message(message_desc: descriptor.Descriptor) -> dict:
     """
     Prompt user for entering valid values for the protobuf Message.
 
