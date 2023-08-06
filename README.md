@@ -43,6 +43,8 @@
 Python, python-gRPC, google-protobuf
 
 ## Деплой
+Бэкэнд и сервисы атаки развернуты на реестре GitHub и к ним можно получить
+доступ по следующей [ссылке](https://github.com/y4cer?tab=packages&repo_name=yacor).
 
 ## Установка
 1. Установите Python, docker-compose и Docker согласно инструкциям для вашей
