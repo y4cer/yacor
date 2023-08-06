@@ -41,6 +41,9 @@ and starts to respond to healthcheck messages.
 Python, python-gRPC, google-protobuf
 
 ## Deployment
+The backend and attack services are deployed to the GitHub registry and can
+be accessed via the following
+[link](https://github.com/y4cer?tab=packages&repo_name=yacor)
 
 ## Installation
 1. Install python, docker-compose and Docker according to your system guides.
