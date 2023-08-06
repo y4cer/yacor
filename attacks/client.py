@@ -7,6 +7,7 @@ backend servers for the attacks.
 from google.protobuf import message
 import grpc
 import logging
+import os
 
 import client_pb2_grpc
 import message_definitions_pb2
@@ -14,6 +15,7 @@ import message_definitions_pb2
 import user_input_resolver
 import ecdsa_reused_nonce
 
+BACKEND_ADDR = os.environ["BACKEND_ADDR"]
 _LOGGER = logging.getLogger(__name__)
 
 attack_handlers = {
@@ -75,7 +77,7 @@ def perform_attack(
             args = prompter()
         try:
             response = handler(args, channel)
-            _LOGGER.info(f"Successfull rpc call: {response.message}")
+            _LOGGER.info(f"Successfull rpc call: {response}")
         except grpc.RpcError as rpc_error:
             _LOGGER.error(f"Rpc call error: {rpc_error}")
             raise RuntimeError(f"Unexpected error: {rpc_error}")
@@ -132,7 +134,7 @@ def main():
     while True:
         try:
             print("Running an interactive client, press ctrl+c to exit.")
-            run('localhost:50051')
+            run(BACKEND_ADDR)
         except KeyboardInterrupt:
             print("\nExititng...")
             exit(0)

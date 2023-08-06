@@ -9,6 +9,8 @@ services:
     restart: unless-stopped
     ports:
       - 50051:50051
+    environment:
+      - PORT=50051
 
   ecdsa_nonce_attack:
     build:
@@ -18,3 +20,5 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
+    environment:
+      - BACKEND_ADDR=backend:50051

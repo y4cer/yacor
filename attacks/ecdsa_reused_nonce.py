@@ -11,12 +11,14 @@ import ecdsa
 import grpc
 import hashlib
 import logging
+import os
 
 import attack_service_pb2_grpc
 import message_definitions_pb2
 
 import interact_module
 
+BACKEND_ADDR = os.environ["BACKEND_ADDR"]
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -194,7 +196,8 @@ def run() -> None:
             description,
             port,
             primitive_type,
-            "ECDSA Reused Nonce attack"
+            "ECDSA Reused Nonce attack",
+            BACKEND_ADDR
     )
     _LOGGER.info("Stared serving")
     grpc_server.wait_for_termination()

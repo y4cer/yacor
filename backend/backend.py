@@ -6,6 +6,7 @@ import copy
 import datetime
 import grpc
 import logging
+import os
 import random
 import threading
 import time
@@ -17,6 +18,7 @@ import backend_pb2_grpc
 import client_pb2_grpc
 import message_definitions_pb2
 
+PORT = os.environ["PORT"]
 _LOGGER = logging.getLogger(__name__)
 
 subscribers = {}
@@ -198,4 +200,4 @@ class Backend:
 
 if __name__ == "__main__":
     logging.basicConfig()
-    Backend('0.0.0.0:50051')
+    Backend(f'0.0.0.0:{PORT}')
