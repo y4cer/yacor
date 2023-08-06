@@ -7,12 +7,16 @@
 from google.protobuf import message
 import grpc
 import logging
+import os
 
 import client_pb2_grpc
 import message_definitions_pb2
+
 import user_input_resolver
 import ecdsa_reused_nonce
 
+BACKEND_ADDR = os.environ["BACKEND_ADDR"]
+_LOGGER = logging.getLogger(__name__)
 
 attack_handlers = {
     "ECDSA Reused Nonce attack": ecdsa_reused_nonce.handler
@@ -27,6 +31,7 @@ prompters = {
         lambda: user_input_resolver.prompt_for_message(
             message_definitions_pb2.ReusedNonceAttackRequest().DESCRIPTOR)
 }
+
 
 def perform_attack(
         service: message_definitions_pb2.AvailableServices.AvailableService
@@ -47,9 +52,9 @@ def perform_attack(
 
         choice = 0
         while choice not in [1, 2]:
-            choice = int(input("\nPlease choose the type of the attack " \
-                  "you want to perform. \n\t1 - for automatic generation " \
-                  "of vulnerable data,  \n\t2 - for manual data " \
+            choice = int(input("\nPlease choose the type of the attack "
+                  "you want to perform. \n\t1 - for automatic generation "
+                  "of vulnerable data,  \n\t2 - for manual data "
                   "entry\n\n"))
 
         handler = attack_handlers[service.attack_name]
@@ -61,22 +66,28 @@ def perform_attack(
             args = generator()
 
         elif choice == 1 and handler is None:
-            print("There is no automatic data generation for this type of " \
-                    "the attack")
+            print("There is no automatic data generation for this type of "
+                  "the attack")
             choice = 2
 
         if choice == 2:
-            print("Now you are required to enter the data to the " \
-                  "corresponding fields. Please ensure the correctness of " \
+            print("Now you are required to enter the data to the "
+                  "corresponding fields. Please ensure the correctness of "
                   "the  entered data.")
             args = prompter()
-
-        response = handler(args, channel)
+        try:
+            response = handler(args, channel)
+            _LOGGER.info(f"Successfull rpc call: {response}")
+        except grpc.RpcError as rpc_error:
+            _LOGGER.error(f"Rpc call error: {rpc_error}")
+            raise RuntimeError(f"Unexpected error: {rpc_error}")
         return response
+
 
 def _no_services_available() -> None:
     print("Sorry, there are currently no available attack services")
     exit(0)
+
 
 def run(backend_address: str) -> None:
     """
@@ -93,7 +104,7 @@ def run(backend_address: str) -> None:
             crypto_attack_args = message_definitions_pb2.EmptyMessage()
             available_services = crypto_attacks_stub \
                     .getAvailableServices(crypto_attack_args).services
-        except Exception as _:
+        except Exception:
             _no_services_available()
 
         assert available_services is not None
@@ -108,26 +119,29 @@ def run(backend_address: str) -> None:
         try:
             chosen_attack = int(input("Choose the attack: "))
             if not (0 <= chosen_attack <= len(available_services) - 1):
-                raise ValueError("Enter the correct integer value for the " \
+                raise ValueError("Enter the correct integer value for the "
                         "attack")
             print(f"You chose: {chosen_attack}")
             attack_service = available_services[chosen_attack]
             res = perform_attack(attack_service)
+
             print(res)
 
         except ValueError as e:
-            print(e)
+            _LOGGER.error(e)
+
 
 def main():
-
-
     while True:
         try:
             print("Running an interactive client, press ctrl+c to exit.")
-            run('localhost:50051')
+            run(BACKEND_ADDR)
         except KeyboardInterrupt:
             print("\nExititng...")
             exit(0)
+        except RuntimeError as e:
+            _LOGGER.error(e)
+
 
 if __name__ == "__main__":
     logging.basicConfig()

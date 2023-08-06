@@ -5,6 +5,8 @@ import collections
 import copy
 import datetime
 import grpc
+import logging
+import os
 import random
 import threading
 import time
@@ -16,7 +18,11 @@ import backend_pb2_grpc
 import client_pb2_grpc
 import message_definitions_pb2
 
+PORT = os.environ["PORT"]
+_LOGGER = logging.getLogger(__name__)
+
 subscribers = {}
+
 
 class AttacksManagerServicer(backend_pb2_grpc.AttacksManagerServicer):
     def subscribe(
@@ -48,12 +54,12 @@ class AttacksManagerServicer(backend_pb2_grpc.AttacksManagerServicer):
             metadata = {
                 request.attack_name: Services(service_name=service_name,
                                               description=description,
-                                              addresses=[])
+                                              addresses=[]
+                                              )
             }
             subscribers[primitive] = metadata
 
-        service_address = ":".join(context.peer().split(":")[:-1] + \
-                                [str(port)])
+        service_address = ":".join(context.peer().split(":")[:-1] + [str(port)])
         subscribers[primitive][attack_name].addresses.append(service_address)
 
         return message_definitions_pb2.EmptyMessage()
@@ -61,9 +67,10 @@ class AttacksManagerServicer(backend_pb2_grpc.AttacksManagerServicer):
 
 class CryptoAttacksServicer(client_pb2_grpc.CryptoAttacksServicer):
 
-    def getAvailableServices(self,
-                             request: message_definitions_pb2.EmptyMessage,
-                             context
+    def getAvailableServices(
+            self,
+            request: message_definitions_pb2.EmptyMessage,
+            context
     ) -> message_definitions_pb2.AvailableServices:
         """
         Получить все текущие доступные (работающие и активные) сервисы.
@@ -80,18 +87,24 @@ class CryptoAttacksServicer(client_pb2_grpc.CryptoAttacksServicer):
             for attack in attacks.keys():
 
                 if len(subscribers[primitive_type][attack].addresses) == 0:
+                    _LOGGER.info(f"There are no active subscribers for \
+                            {attack}")
                     continue
 
-                address = random.choice(subscribers[primitive_type][attack].addresses)
+                address = random.choice(
+                        subscribers[primitive_type][attack].addresses
+                )
                 service_info = subscribers[primitive_type][attack]
-                available_services.append \
-                    (message_definitions_pb2.AvailableServices.AvailableService(
-                     primitive_type=primitive_type,
-                     attack_name=attack,
-                     address=address,
-                     service_name=service_info.service_name,
-                     description=service_info.description))
-
+                available_services.append(
+                        message_definitions_pb2.AvailableServices
+                        .AvailableService(
+                                primitive_type=primitive_type,
+                                attack_name=attack,
+                                address=address,
+                                service_name=service_info.service_name,
+                                description=service_info.description
+                        )
+                )
 
         resp = message_definitions_pb2.AvailableServices(
                 services=available_services)
@@ -122,9 +135,14 @@ def perform_healthcheck(
             resp = health_stub.Check(health_pb2.HealthCheckRequest(
                 service=service_name))
             if resp.status != health_pb2.HealthCheckResponse.SERVING:
-                _remove_subscriber(primitive_type, attack_name, address, subscribers)
+                _remove_subscriber(
+                        primitive_type,
+                        attack_name,
+                        address,
+                        subscribers
+                )
     except Exception as e:
-        print(e)
+        _LOGGER.error(e)
         _remove_subscriber(primitive_type, attack_name, address, subscribers)
 
 
@@ -138,7 +156,7 @@ def healthcheck() -> None:
             for address in addresses:
                 perform_healthcheck(address, service_name, primitive_type,
                                     attack_name, new_subscribers)
-    print(f"{datetime.datetime.now()}: {subscribers}")
+    _LOGGER.info(f"{datetime.datetime.now()}: {subscribers}")
     subscribers = new_subscribers
 
 
@@ -180,4 +198,6 @@ class Backend:
         grpc_server.wait_for_termination()
 
 
-Backend('0.0.0.0:50051')
+if __name__ == "__main__":
+    logging.basicConfig()
+    Backend(f'0.0.0.0:{PORT}')

@@ -2,6 +2,7 @@
 
 from concurrent import futures
 import grpc
+import logging
 
 import backend_pb2_grpc
 import message_definitions_pb2
@@ -10,15 +11,18 @@ from grpc_health.v1 import health
 from grpc_health.v1 import health_pb2
 from grpc_health.v1 import health_pb2_grpc
 
+_LOGGER = logging.getLogger(__name__)
+
 
 def inform_backend(
         service_name: str,
         description: str,
         port: int,
         primitive_type: message_definitions_pb2.PrimitiveType,
-        attack_name: str
+        attack_name: str,
+        backend_addr: str
 ) -> None:
-    with grpc.insecure_channel("backend:50051") as channel:
+    with grpc.insecure_channel(backend_addr) as channel:
         attack_manager_stub = backend_pb2_grpc.AttacksManagerStub(channel)
         subscription_args = message_definitions_pb2.SubscribeMessage(
                 primitive_type=primitive_type,
@@ -26,8 +30,9 @@ def inform_backend(
                 port=port,
                 service_name=service_name,
                 description=description,
-                )
+        )
         attack_manager_stub.subscribe(subscription_args)
+        _LOGGER.info(f"Subscribed service with {attack_name} to backend.")
 
 
 def configure_health_server(server: grpc.Server, service: str) -> None:

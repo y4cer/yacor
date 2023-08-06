@@ -9,12 +9,16 @@ services:
     restart: unless-stopped
     ports:
       - 50051:50051
+    environment:
+      - PORT=50051
 
   ecdsa_nonce_attack:
     build:
       context: .
-      dockerfile: attacks/Dockerfile
+      dockerfile: attacks/ecdsa_reused_nonce.Dockerfile
     command: python attacks/ecdsa_reused_nonce.py
     restart: unless-stopped
     depends_on:
       - backend
+    environment:
+      - BACKEND_ADDR=backend:50051

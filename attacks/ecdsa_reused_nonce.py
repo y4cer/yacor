@@ -10,11 +10,17 @@ from ecdsa import util, numbertheory
 import ecdsa
 import grpc
 import hashlib
+import logging
+import os
 
 import attack_service_pb2_grpc
 import message_definitions_pb2
 
 import interact_module
+
+BACKEND_ADDR = os.environ["BACKEND_ADDR"]
+_LOGGER = logging.getLogger(__name__)
+
 
 def attack(
     *, pubkey_order: bytes,
@@ -48,17 +54,19 @@ def attack(
     L2 = number.bytes_to_long(msg_hash2)
 
     if (r1 != r2):
-        raise ValueError(
-                "The signature pairs given are not susceptible to this attack")
+        raise ValueError("The signature pairs given are not susceptible to "
+                                                                "this attack")
 
-    numerator = (((s2 * L1) % int_pubkey_order) -
-                    ((s1 * L2) % int_pubkey_order))
-    denominator = numbertheory.inverse_mod(r1 * ((s1 - s2) % int_pubkey_order),
-                                                      int_pubkey_order)
+    numerator = ((s2 * L1) % int_pubkey_order) - ((s1 * L2) % int_pubkey_order)
+    denominator = numbertheory.inverse_mod(
+            r1 * ((s1 - s2) % int_pubkey_order),
+            int_pubkey_order
+    )
 
     privateKey = numerator * denominator % int_pubkey_order
 
     return int(privateKey)
+
 
 def generate_vulnerable_data(
         msg1: str,
@@ -88,6 +96,7 @@ def generate_vulnerable_data(
 
     return vk.pubkey.order, signature, signature2, msg_hash1, msg_hash2
 
+
 def generator() -> dict[str, bytes]:
     """
     Создать уязвимые данные для атаки ECDSA с повторно используемым числом.
@@ -97,13 +106,16 @@ def generator() -> dict[str, bytes]:
     """
     vuln_data = generate_vulnerable_data("msg1", "msg2")
 
-    ecdsa_args = {"pubkey_order": number.long_to_bytes(int(vuln_data[0])),
-                  "signature1": vuln_data[1],
-                  "signature2": vuln_data[2],
-                  "msg_hash1": vuln_data[3],
-                  "msg_hash2": vuln_data[4]
+    ecdsa_args = {
+        "pubkey_order": number.long_to_bytes(int(vuln_data[0])),
+        "signature1": vuln_data[1],
+        "signature2": vuln_data[2],
+        "msg_hash1": vuln_data[3],
+        "msg_hash2": vuln_data[4]
     }
+
     return ecdsa_args
+
 
 class DigitalSignatureAttackServicer(
         attack_service_pb2_grpc.DigitalSignatureAttackServicer):
@@ -132,10 +144,11 @@ class DigitalSignatureAttackServicer(
         }
         recovered_key = attack(**data)
 
-        print(f"Recovered private key: {recovered_key}")
+        _LOGGER.info(f"Recovered private key: {recovered_key}")
         resp = message_definitions_pb2.ReusedNonceAttackResponse(
                 private_key=number.long_to_bytes(recovered_key)
-                )
+        )
+
         return resp
 
 
@@ -161,7 +174,8 @@ def handler(
 def run() -> None:
     service_name = "DigitalSignatureAttackService"
     description = "Service performs nonce reuse attack on ECDSA, utilizing " \
-    "the reused `k` in digital signature algorithm generation. Works with SHA1"
+        "the reused `k` in digital signature algorithm generation. Works " \
+        "with SHA1"
     port = 50002
     primitive_type = message_definitions_pb2.PRIMITIVE_TYPE_DIGITAL_SIGNATURE
 
@@ -182,11 +196,13 @@ def run() -> None:
             description,
             port,
             primitive_type,
-            "ECDSA Reused Nonce attack"
+            "ECDSA Reused Nonce attack",
+            BACKEND_ADDR
     )
-
+    _LOGGER.info("Stared serving")
     grpc_server.wait_for_termination()
 
 
 if __name__ == "__main__":
+    logging.basicConfig()
     run()
