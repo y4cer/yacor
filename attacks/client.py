@@ -13,17 +13,17 @@ import client_pb2_grpc
 import message_definitions_pb2
 
 import user_input_resolver
-import ecdsa_reused_nonce
+import ecdsa_reused_nonce_handlers
 
 BACKEND_ADDR = os.environ["BACKEND_ADDR"]
 _LOGGER = logging.getLogger(__name__)
 
 attack_handlers = {
-    "ECDSA Reused Nonce attack": ecdsa_reused_nonce.handler
+    "ECDSA Reused Nonce attack": ecdsa_reused_nonce_handlers.handler
 }
 
 auto_generators = {
-    "ECDSA Reused Nonce attack": ecdsa_reused_nonce.generator
+    "ECDSA Reused Nonce attack": ecdsa_reused_nonce_handlers.generator
 }
 
 prompters = {
