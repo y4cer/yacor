@@ -12,4 +12,4 @@ COPY protos protos/
 COPY Makefile .
 COPY attacks/ ./attacks/
 
-RUN make clean && make all
+RUN make clean && make attacks

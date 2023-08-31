@@ -65,6 +65,7 @@ def attack(
 
     return int(privateKey)
 
+
 class DigitalSignatureAttackServicer(
         attack_service_pb2_grpc.DigitalSignatureAttackServicer):
 

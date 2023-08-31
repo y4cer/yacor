@@ -199,5 +199,5 @@ class Backend:
 
 
 if __name__ == "__main__":
-    logging.basicConfig()
+    logging.basicConfig(level=logging.DEBUG)
     Backend(f'0.0.0.0:{PORT}')

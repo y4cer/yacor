@@ -1,79 +1,84 @@
 # Regenerates all generated files in the Python examples directory.
+ARTIFACTS=
 
 BACKEND=
 
-BACKEND += ./attack_service_pb2.py
-BACKEND += ./attack_service_pb2_grpc.py
-BACKEND += ./attack_service_pb2.pyi
+BACKEND += ./backend/attack_service_pb2.py
+BACKEND += ./backend/attack_service_pb2_grpc.py
+BACKEND += ./backend/attack_service_pb2.pyi
 
-BACKEND += ./client_pb2.py
-BACKEND += ./client_pb2_grpc.py
-BACKEND += ./client_pb2.pyi
+BACKEND += ./backend/client_pb2.py
+BACKEND += ./backend/client_pb2_grpc.py
+BACKEND += ./backend/client_pb2.pyi
 
-BACKEND += ./backend_pb2.py
-BACKEND += ./backend_pb2_grpc.py
-BACKEND += ./backend_pb2.pyi
+BACKEND += ./backend/backend_pb2.py
+BACKEND += ./backend/backend_pb2_grpc.py
+BACKEND += ./backend/backend_pb2.pyi
 
-BACKEND += ./message_definitions_pb2.py
-BACKEND += ./message_definitions_pb2_grpc.py
-BACKEND += ./message_definitions_pb2.pyi
+BACKEND += ./backend/message_definitions_pb2.py
+BACKEND += ./backend/message_definitions_pb2_grpc.py
+BACKEND += ./backend/message_definitions_pb2.pyi
 
-ARTIFACTS=
+ARTIFACTS += ${BACKEND}
 
-ARTIFACTS += ./attack_service_pb2.py
-ARTIFACTS += ./attack_service_pb2_grpc.py
-ARTIFACTS += ./attack_service_pb2.pyi
+CLIENT=
 
-ARTIFACTS += ./client_pb2.py
-ARTIFACTS += ./client_pb2_grpc.py
-ARTIFACTS += ./client_pb2.pyi
+CLIENT += ./client/client_pb2.py
+CLIENT += ./client/client_pb2_grpc.py
+CLIENT += ./client/client_pb2.pyi
 
-ARTIFACTS += ./backend_pb2.py
-ARTIFACTS += ./backend_pb2_grpc.py
-ARTIFACTS += ./backend_pb2.pyi
+CLIENT += ./client/attack_service_pb2.py
+CLIENT += ./client/attack_service_pb2_grpc.py
+CLIENT += ./client/attack_service_pb2.pyi
 
-ARTIFACTS += ./message_definitions_pb2.py
-ARTIFACTS += ./message_definitions_pb2_grpc.py
-ARTIFACTS += ./message_definitions_pb2.pyi
+CLIENT += ./client/backend_pb2.py
+CLIENT += ./client/backend_pb2_grpc.py
+CLIENT += ./client/backend_pb2.pyi
 
-ARTIFACTS += ./attacks/attack_service_pb2.py
-ARTIFACTS += ./attacks/attack_service_pb2_grpc.py
-ARTIFACTS += ./attacks/attack_service_pb2.pyi
+CLIENT += ./client/message_definitions_pb2.py
+CLIENT += ./client/message_definitions_pb2_grpc.py
+CLIENT += ./client/message_definitions_pb2.pyi
 
-ARTIFACTS += ./attacks/backend_pb2.py
-ARTIFACTS += ./attacks/backend_pb2_grpc.py
-ARTIFACTS += ./attacks/backend_pb2.pyi
+ARTIFACTS += ${CLIENT}
 
-ARTIFACTS += ./attacks/message_definitions_pb2.py
-ARTIFACTS += ./attacks/message_definitions_pb2_grpc.py
-ARTIFACTS += ./attacks/message_definitions_pb2.pyi
+ATTACKS += ./attacks/attack_service_pb2.py
+ATTACKS += ./attacks/attack_service_pb2_grpc.py
+ATTACKS += ./attacks/attack_service_pb2.pyi
 
-ARTIFACTS += ./attacks/client_pb2.py
-ARTIFACTS += ./attacks/client_pb2_grpc.py
-ARTIFACTS += ./attacks/client_pb2.pyi
+ATTACKS += ./attacks/backend_pb2.py
+ATTACKS += ./attacks/backend_pb2_grpc.py
+ATTACKS += ./attacks/backend_pb2.pyi
 
-LOCAL_GEN_PATH="./"
-ATTACK_SERVICE_GEN_PATH="attacks/"
+ATTACKS += ./attacks/message_definitions_pb2.py
+ATTACKS += ./attacks/message_definitions_pb2_grpc.py
+ATTACKS += ./attacks/message_definitions_pb2.pyi
+
+ARTIFACTS += ${ATTACKS}
+
+CLIENT_GEN_PATH = client/
+BACKEND_GEN_PATH = backend/
+ATTACK_SERVICE_GEN_PATH = attacks/
 
 .PHONY: all
 all: ${ARTIFACTS}
 
-./attack_service_pb2.py ./attack_service_pb2_grpc.py ./attack_service_pb2.pyi:
-	python3 -m grpc_tools.protoc --proto_path=protos/ --python_out=${LOCAL_GEN_PATH} \
-    	--grpc_python_out=${LOCAL_GEN_PATH} --pyi_out=${LOCAL_GEN_PATH} attack_service.proto
+./backend/attack_service_pb2.py ./backend/attack_service_pb2_grpc.py ./backend/attack_service_pb2.pyi:
+	python3 -m grpc_tools.protoc --proto_path=protos/ --python_out=${BACKEND_GEN_PATH} \
+    	--grpc_python_out=${BACKEND_GEN_PATH} --pyi_out=${BACKEND_GEN_PATH} attack_service.proto
 
-./client_pb2.py ./client_pb2_grpc.py ./client_pb2.pyi:
-	python3 -m grpc_tools.protoc --proto_path=protos/ --python_out=${LOCAL_GEN_PATH} \
-		--grpc_python_out=${LOCAL_GEN_PATH} --pyi_out=${LOCAL_GEN_PATH} client.proto
+./backend/client_pb2.py ./backend/client_pb2_grpc.py ./backend/client_pb2.pyi:
+	python3 -m grpc_tools.protoc --proto_path=protos/ --python_out=${BACKEND_GEN_PATH} \
+		--grpc_python_out=${BACKEND_GEN_PATH} --pyi_out=${BACKEND_GEN_PATH} client.proto
 
-./backend_pb2.py ./backend_pb2_grpc.py ./backend_pb2.pyi:
-	python3 -m grpc_tools.protoc --proto_path=protos/ --python_out=${LOCAL_GEN_PATH} \
-		--grpc_python_out=${LOCAL_GEN_PATH} --pyi_out=${LOCAL_GEN_PATH} backend.proto
+./backend/backend_pb2.py ./backend/backend_pb2_grpc.py ./backend/backend_pb2.pyi:
+	python3 -m grpc_tools.protoc --proto_path=protos/ --python_out=${BACKEND_GEN_PATH} \
+		--grpc_python_out=${BACKEND_GEN_PATH} --pyi_out=${BACKEND_GEN_PATH} backend.proto
 
-./message_definitions_pb2.py ./message_definitions_pb2_grpc.py ./message_definitions_pb2.pyi:
-	python3 -m grpc_tools.protoc --proto_path=protos/ --python_out=${LOCAL_GEN_PATH} \
-		--grpc_python_out=${LOCAL_GEN_PATH} --pyi_out=${LOCAL_GEN_PATH} message_definitions.proto
+./backend/message_definitions_pb2.py ./backend/message_definitions_pb2_grpc.py ./backend/message_definitions_pb2.pyi:
+	python3 -m grpc_tools.protoc --proto_path=protos/ --python_out=${BACKEND_GEN_PATH} \
+		--grpc_python_out=${BACKEND_GEN_PATH} --pyi_out=${BACKEND_GEN_PATH} message_definitions.proto
 
+# ---------------------------------------------------------------------------------------------------------- #
 
 ./attacks/attack_service_pb2.py ./attacks/attack_service_pb2_grpc.py ./attacks/attack_service_pb2.pyi:
 	python3 -m grpc_tools.protoc --proto_path=protos/ --python_out=${ATTACK_SERVICE_GEN_PATH} \
@@ -87,14 +92,38 @@ all: ${ARTIFACTS}
 	python3 -m grpc_tools.protoc --proto_path=protos/ --python_out=${ATTACK_SERVICE_GEN_PATH} \
 		--grpc_python_out=${ATTACK_SERVICE_GEN_PATH} --pyi_out=${ATTACK_SERVICE_GEN_PATH} message_definitions.proto
 
-./attacks/client_pb2.py ./attacks/client_pb2_grpc.py ./attacks/client_pb2.pyi:
-	python3 -m grpc_tools.protoc --proto_path=protos/ --python_out=${ATTACK_SERVICE_GEN_PATH} \
-		--grpc_python_out=${ATTACK_SERVICE_GEN_PATH} --pyi_out=${ATTACK_SERVICE_GEN_PATH} client.proto
+# ---------------------------------------------------------------------------------------------------------- #
+
+./client/client_pb2.py ./client/client_pb2_grpc.py ./client/client_pb2.pyi:
+	python3 -m grpc_tools.protoc --proto_path=protos/ --python_out=${CLIENT_GEN_PATH} \
+		--grpc_python_out=${CLIENT_GEN_PATH} --pyi_out=${CLIENT_GEN_PATH} client.proto
+
+./client/attack_service_pb2.py ./client/attack_service_pb2_grpc.py ./client/attack_service_pb2.pyi:
+	python3 -m grpc_tools.protoc --proto_path=protos/ --python_out=${CLIENT_GEN_PATH} \
+		--grpc_python_out=${CLIENT_GEN_PATH} --pyi_out=${CLIENT_GEN_PATH} attack_service.proto
+
+./client/backend_pb2.py ./client/backend_pb2_grpc.py ./client/backend_pb2.pyi:
+	python3 -m grpc_tools.protoc --proto_path=protos/ --python_out=${CLIENT_GEN_PATH} \
+		--grpc_python_out=${CLIENT_GEN_PATH} --pyi_out=${CLIENT_GEN_PATH} backend.proto
+
+./client/message_definitions_pb2.py ./client/message_definitions_pb2_grpc.py ./client/message_definitions_pb2.pyi:
+	python3 -m grpc_tools.protoc --proto_path=protos/ --python_out=${CLIENT_GEN_PATH} \
+		--grpc_python_out=${CLIENT_GEN_PATH} --pyi_out=${CLIENT_GEN_PATH} message_definitions.proto
+
+# ---------------------------------------------------------------------------------------------------------- #
 
 .PHONY: backend
 backend: ${BACKEND}
 
+.PHONY: client
+client: ${CLIENT}
+
+.PHONY: attacks
+attacks: ${ATTACKS}
+
 .PHONY: clean
 clean:
 	rm -f ${ARTIFACTS}
-	rm -rf __pycache__
+	rm -rf ${CLIENT_GEN_PATH}__pycache__
+	rm -rf ${ATTACK_SERVICE_GEN_PATH}__pycache__
+	rm -rf ${BACKEND_GEN_PATH}__pycache__

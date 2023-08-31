@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: backend/backend.Dockerfile
-    command: python backend.py
+    command: python backend/backend.py
     restart: unless-stopped
     ports:
       - 50051:50051
